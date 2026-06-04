@@ -519,7 +519,11 @@ fn default_sound_theme() -> SoundTheme {
 }
 
 fn default_post_process_enabled() -> bool {
-    false
+    // Clean-on-by-default, per the design: the AI rewrite (Clean) runs on every
+    // dictation out of the box, fully on-device. It degrades gracefully to the
+    // verbatim transcript until the on-device model is downloaded, so enabling
+    // it by default is safe and zero-config.
+    true
 }
 
 fn default_app_language() -> String {
@@ -737,6 +741,31 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
                     .insert(provider.id.clone(), default_model);
                 changed = true;
             }
+        }
+    }
+
+    // Fully-local-by-default: if the selected refinement provider is a cloud
+    // provider that was never configured with an API key, fall back to the
+    // on-device engine. This corrects installs created before on-device became
+    // the default, without overriding anyone who set up a cloud key or chose a
+    // local option (on-device / custom-Ollama / Apple Intelligence).
+    {
+        let selected = settings.post_process_provider_id.clone();
+        let configured = settings
+            .post_process_api_keys
+            .get(&selected)
+            .map(|key| !key.is_empty())
+            .unwrap_or(false);
+        let is_local_choice = selected == ON_DEVICE_PROVIDER_ID
+            || selected == "custom"
+            || selected == APPLE_INTELLIGENCE_PROVIDER_ID;
+        if !is_local_choice && !configured {
+            debug!(
+                "Refinement provider '{}' has no API key; defaulting to on-device",
+                selected
+            );
+            settings.post_process_provider_id = ON_DEVICE_PROVIDER_ID.to_string();
+            changed = true;
         }
     }
 
