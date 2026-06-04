@@ -21,10 +21,17 @@
   --color-text-stroke: #131b19;
   --color-mid-gray: #61746d;
   --color-line: rgba(255, 255, 255, 0.08);
+
+  /* Bundled font families — Space Grotesk (UI) + JetBrains Mono (technical).
+     Driving the Tailwind font utilities (font-sans / font-mono) from here keeps
+     the whole app on the bundled, offline webfonts. */
+  --font-sans: "Space Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
 }
 
 :root {
   /* Typography */
+  font-family: "Space Grotesk", system-ui, -apple-system, sans-serif;
   font-size: 15px;
   line-height: 24px;
   font-weight: 400;
@@ -53,6 +60,13 @@
   /* Apply colors */
   color: var(--color-text);
   background-color: var(--color-background);
+}
+
+code,
+kbd,
+pre,
+samp {
+  font-family: var(--font-mono);
 }
 
 .container {

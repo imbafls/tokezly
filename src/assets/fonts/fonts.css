@@ -1,0 +1,22 @@
+/* Tokezly bundled webfonts — local-first / offline. No runtime Google Fonts.
+   Both files are latin-subset variable fonts: Space Grotesk covers the wght
+   range used by the UI (400/500/600/700) and JetBrains Mono covers the mono
+   range (400/500/600). Vite fingerprints and bundles the woff2 files because
+   they are referenced here via relative url() and this stylesheet is imported
+   from the app entry points. */
+
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url("./space-grotesk-latin.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("./jetbrains-mono-latin.woff2") format("woff2");
+}
