@@ -1,95 +1,265 @@
-.recording-overlay {
-  height: 36px;
-  width: 172px;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  padding: 6px;
-  background: #000000cc;
-  border-radius: 18px;
-  opacity: 0;
-  transition: opacity 300ms ease-out;
+/* ===================== STRUM RUNTIME OVERLAY ===================== */
+/* Capsule (listening) → Popup (transcribing / refining) → Toast (pasted). */
+/* Design tokens lifted from the Strum design spec. */
+:root {
+  --tx: #ffffff;
+  --tx-2: rgba(255, 255, 255, 0.786);
+  --tx-3: rgba(255, 255, 255, 0.544);
+  --tx-4: rgba(255, 255, 255, 0.363);
+  --acc: #60cdff;
+  --acc-2: #99ebff;
+  --acc-dim: rgba(96, 205, 255, 0.14);
+  --ok: #6ccb5f;
+  --err: #ff99a4;
+  --rec: #ff99a4;
+  --rec-glow: rgba(255, 153, 164, 0.45);
+  --line: rgba(255, 255, 255, 0.0698);
+  --sans:
+    "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI",
+    system-ui, sans-serif;
+  --mono: "Cascadia Code", "Cascadia Mono", Consolas, "JetBrains Mono",
+    ui-monospace, monospace;
+}
+
+/* The overlay window is large + transparent; anchor content to the bottom-center
+   so the capsule/popup sits near the screen edge regardless of window size. */
+.overlay-root {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 4px;
   box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
-.overlay-left {
-  display: flex;
-  align-items: center;
+.overlay-surface {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 240ms ease-out,
+    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.overlay-middle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.overlay-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.bars-container {
-  display: flex;
-  align-items: end;
-  justify-content: center;
-  gap: 3px;
-  padding-bottom: 0px;
-  height: 24px;
-  overflow: hidden;
-}
-
-.bar {
-  width: 6px;
-  background: #ffe5ee;
-  max-height: 20px;
-  border-radius: 2px;
-  transition: height 80ms linear;
-  min-height: 4px;
-}
-
-.recording-overlay.fade-in {
+.overlay-root.visible .overlay-surface {
   opacity: 1;
+  transform: translateY(0);
 }
 
-.transcribing-text {
-  color: white;
-  font-size: 12px;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  animation: transcribing-pulse 1.5s infinite ease-in-out;
+/* ---------------- Acrylic capsule (listening) ---------------- */
+.cap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--tx);
+  background: rgba(43, 43, 43, 0.72);
+  backdrop-filter: blur(50px) saturate(1.35);
+  -webkit-backdrop-filter: blur(50px) saturate(1.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 28px rgba(0, 0, 0, 0.36),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
-
-@keyframes transcribing-pulse {
-  0%,
+.reddot {
+  width: 9px;
+  height: 9px;
+  border-radius: 99px;
+  background: var(--rec);
+  flex: none;
+  box-shadow: 0 0 0 0 var(--rec-glow);
+  animation: recpulse 1.6s ease-out infinite;
+}
+@keyframes recpulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--rec-glow);
+  }
+  70% {
+    box-shadow: 0 0 0 9px transparent;
+  }
   100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
+    box-shadow: 0 0 0 0 transparent;
   }
 }
+.cap-lbl {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--rec);
+}
+.cap .timer {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tx-3);
+}
 
-.cancel-button {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: transparent;
+/* waveform */
+.wave {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 2px;
+  height: 22px;
+}
+.wave .b {
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--rec);
+  flex: none;
+  transition:
+    height 90ms linear,
+    opacity 120ms ease-out;
+}
+
+/* cancel affordance on the capsule */
+.cap-cancel {
+  width: 22px;
+  height: 22px;
+  margin-left: 2px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  color: var(--tx-3);
   cursor: pointer;
   transition:
-    background-color 150ms ease-out,
-    transform 100ms ease-out;
-  flex-shrink: 0;
+    background 0.12s,
+    color 0.12s;
+  flex: none;
+}
+.cap-cancel:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tx);
+}
+.cap-cancel svg {
+  width: 14px;
+  height: 14px;
 }
 
-.cancel-button:hover {
-  background: #faa2ca33;
-  transform: scale(1.05);
+/* ---------------- Acrylic popup (streaming / refining) ---------------- */
+.pop {
+  width: 320px;
+  font-family: var(--sans);
+  color: var(--tx);
+  background: rgba(43, 43, 43, 0.74);
+  backdrop-filter: blur(50px) saturate(1.35);
+  -webkit-backdrop-filter: blur(50px) saturate(1.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 16px 36px rgba(0, 0, 0, 0.4),
+    0 2px 10px rgba(0, 0, 0, 0.32);
+  overflow: hidden;
+  position: relative;
+}
+.pop .top-accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--acc) 50%, transparent);
+  opacity: 0;
+}
+.pop.accent .top-accent {
+  opacity: 1;
+}
+.pop-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+}
+.pop-ttl {
+  font-size: 13px;
+  color: var(--tx);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pop-eng {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--tx-3);
+}
+.pop-eng .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--ok);
+}
+.pop-eng .dot.off {
+  background: var(--err);
 }
 
-.cancel-button:active {
-  transform: scale(0.95);
+/* WinUI-style ProgressRing */
+.spinner {
+  flex: none;
+}
+.spinner circle {
+  stroke: var(--acc);
+}
+.spin-rot {
+  transform-origin: center;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sparkle {
+  color: var(--acc);
+}
+
+/* ---------------- Paste toast ---------------- */
+.toast {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: 13.5px;
+  color: var(--tx);
+  background: rgba(43, 43, 43, 0.72);
+  backdrop-filter: blur(50px) saturate(1.35);
+  -webkit-backdrop-filter: blur(50px) saturate(1.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 12px 28px rgba(0, 0, 0, 0.36);
+}
+.toast .checkwrap {
+  width: 20px;
+  height: 20px;
+  border-radius: 99px;
+  background: var(--ok);
+  color: #000;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.toast .checkwrap svg {
+  width: 13px;
+  height: 13px;
+}
+.toast .toast-t {
+  font-weight: 600;
+}
+.toast .toast-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--tx-3);
 }
