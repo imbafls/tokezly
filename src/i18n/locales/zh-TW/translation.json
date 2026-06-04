@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "裝置端模型",
+        "descriptionReady": "本機優化模型已下載並就緒。改寫完全在程序內執行——無需網路，無需常駐程式。",
+        "descriptionMissing": "下載本機優化模型，即可完全在裝置端執行改寫。僅需下載一次；儲存在本機。",
+        "download": "下載裝置端模型（約 1.6 GB）",
+        "downloading": "正在下載… {{percent}}%",
+        "ready": "模型已就緒",
+        "error": "下載失敗。請檢查您的連線後再試一次。"
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "正在轉錄...",
     "processing": "處理中...",
-    "pasted": "Pasted to cursor",
+    "pasted": "已貼上至游標處",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· 逐字",
+      "cleaned": "· 已整理",
+      "prompt": "· 提交訊息"
     }
   }
 }

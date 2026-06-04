@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "מודל במכשיר",
+        "descriptionReady": "מודל השכלול המקומי הורד ומוכן. כתיבות מחדש פועלות כולן בתוך התהליך — ללא רשת וללא תהליך רקע.",
+        "descriptionMissing": "הורד את מודל השכלול המקומי כדי להריץ כתיבות מחדש כולן במכשיר. הורדה חד־פעמית; נשמרת במכשיר זה.",
+        "download": "הורדת המודל למכשיר (~1.6 ג׳יגה-בייט)",
+        "downloading": "מוריד… {{percent}}%",
+        "ready": "המודל מוכן",
+        "error": "ההורדה נכשלה. בדוק את החיבור ונסה שוב."
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
-    "pasted": "Pasted to cursor",
+    "pasted": "הודבק במיקום הסמן",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· מילה במילה",
+      "cleaned": "· מנוקה",
+      "prompt": "· הודעת קומיט"
     }
   }
 }

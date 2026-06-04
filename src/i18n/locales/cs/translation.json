@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "Model v zařízení",
+        "descriptionReady": "Lokální model pro úpravy je stažený a připravený. Přepisy běží zcela v procesu — žádná síť, žádný démon.",
+        "descriptionMissing": "Stáhněte lokální model pro úpravy, aby přepisy běžely zcela v zařízení. Jednorázové stažení; uloženo na tomto počítači.",
+        "download": "Stáhnout model v zařízení (~1,6 GB)",
+        "downloading": "Stahování… {{percent}}%",
+        "ready": "Model připraven",
+        "error": "Stažení selhalo. Zkontrolujte připojení a zkuste to znovu."
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
-    "pasted": "Pasted to cursor",
+    "pasted": "Vloženo ke kurzoru",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· doslovně",
+      "cleaned": "· upraveno",
+      "prompt": "· zpráva commitu"
     }
   }
 }

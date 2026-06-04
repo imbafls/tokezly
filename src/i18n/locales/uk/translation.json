@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "Модель на пристрої",
+        "descriptionReady": "Локальну модель удосконалення завантажено й готово. Переписування виконуються повністю всередині процесу — без мережі та без демона.",
+        "descriptionMissing": "Завантажте локальну модель удосконалення, щоб виконувати переписування повністю на пристрої. Одноразове завантаження; зберігається на цьому комп’ютері.",
+        "download": "Завантажити модель на пристрій (~1,6 ГБ)",
+        "downloading": "Завантаження… {{percent}}%",
+        "ready": "Модель готова",
+        "error": "Не вдалося завантажити. Перевірте з’єднання та повторіть спробу."
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "Обробка...",
     "processing": "Постобробка...",
-    "pasted": "Pasted to cursor",
+    "pasted": "Вставлено в позицію курсора",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· дослівно",
+      "cleaned": "· очищено",
+      "prompt": "· повідомлення коміту"
     }
   }
 }

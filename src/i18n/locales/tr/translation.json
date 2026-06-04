@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "Cihaz üzerinde model",
+        "descriptionReady": "Yerel iyileştirme modeli indirildi ve hazır. Yeniden yazmalar tamamen süreç içinde çalışır — ağ yok, arka plan hizmeti yok.",
+        "descriptionMissing": "Yeniden yazmaları tamamen cihaz üzerinde çalıştırmak için yerel iyileştirme modelini indirin. Tek seferlik indirme; bu makinede saklanır.",
+        "download": "Cihaz üzerindeki modeli indir (~1,6 GB)",
+        "downloading": "İndiriliyor… %{{percent}}",
+        "ready": "Model hazır",
+        "error": "İndirme başarısız oldu. Bağlantınızı kontrol edip tekrar deneyin."
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
-    "pasted": "Pasted to cursor",
+    "pasted": "İmlece yapıştırıldı",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· birebir",
+      "cleaned": "· düzeltilmiş",
+      "prompt": "· commit mesajı"
     }
   }
 }

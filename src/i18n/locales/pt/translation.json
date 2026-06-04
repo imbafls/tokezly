@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "Modelo no dispositivo",
+        "descriptionReady": "O modelo de refinamento local está baixado e pronto. As reescritas são executadas totalmente no processo — sem rede, sem daemon.",
+        "descriptionMissing": "Baixe o modelo de refinamento local para executar as reescritas totalmente no dispositivo. Download único; armazenado nesta máquina.",
+        "download": "Baixar modelo no dispositivo (~1,6 GB)",
+        "downloading": "Baixando… {{percent}}%",
+        "ready": "Modelo pronto",
+        "error": "Falha no download. Verifique sua conexão e tente novamente."
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "Transcrevendo...",
     "processing": "Processando...",
-    "pasted": "Pasted to cursor",
+    "pasted": "Colado no cursor",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· literal",
+      "cleaned": "· limpo",
+      "prompt": "· mensagem de commit"
     }
   }
 }

@@ -430,13 +430,13 @@
       },
       "providerGroup": "Provider",
       "onDevice": {
-        "title": "On-device model",
-        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
-        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
-        "download": "Download on-device model (~1.6 GB)",
-        "downloading": "Downloading… {{percent}}%",
-        "ready": "Model ready",
-        "error": "Download failed. Check your connection and try again."
+        "title": "オンデバイスモデル",
+        "descriptionReady": "ローカルの推敲モデルはダウンロード済みで利用可能です。リライトはすべてプロセス内で実行され、ネットワークもデーモンも使用しません。",
+        "descriptionMissing": "リライトをすべてオンデバイスで実行するには、ローカルの推敲モデルをダウンロードしてください。ダウンロードは一度だけで、このマシンに保存されます。",
+        "download": "オンデバイスモデルをダウンロード（約1.6 GB）",
+        "downloading": "ダウンロード中… {{percent}}%",
+        "ready": "モデルの準備完了",
+        "error": "ダウンロードに失敗しました。接続を確認して再試行してください。"
       }
     },
     "history": {
@@ -629,11 +629,11 @@
   "overlay": {
     "transcribing": "文字起こし中...",
     "processing": "処理中...",
-    "pasted": "Pasted to cursor",
+    "pasted": "カーソル位置に貼り付けました",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
+      "verbatim": "· そのまま",
+      "cleaned": "· 整形済み",
+      "prompt": "· コミットメッセージ"
     }
   }
 }
