@@ -71,7 +71,11 @@ fn build_headers(provider: &PostProcessProvider, api_key: &str) -> Result<Header
     );
     headers.insert(
         USER_AGENT,
-        HeaderValue::from_static("Tokezly/0.1.0 (+https://github.com/imbafls/tokezly)"),
+        HeaderValue::from_static(concat!(
+            "Tokezly/",
+            env!("CARGO_PKG_VERSION"),
+            " (+https://github.com/imbafls/tokezly)"
+        )),
     );
     headers.insert("X-Title", HeaderValue::from_static("Tokezly"));
 
