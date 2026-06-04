@@ -416,6 +416,13 @@ pub struct AppSettings {
     pub post_process_prompts: Vec<LLMPrompt>,
     #[serde(default)]
     pub post_process_selected_prompt_id: Option<String>,
+    /// Whether the one-time "unconfigured cloud provider -> on-device" migration
+    /// has already run for this install. Absent in installs created before the
+    /// on-device engine became the default, so it deserializes to `false` there
+    /// and the migration fires exactly once. Fresh installs are created already
+    /// `true` (nothing to migrate). See `migrate_unconfigured_cloud_to_on_device`.
+    #[serde(default)]
+    pub post_process_migrated_to_on_device: bool,
     #[serde(default)]
     pub mute_while_recording: bool,
     #[serde(default)]
@@ -744,32 +751,45 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
         }
     }
 
-    // Fully-local-by-default: if the selected refinement provider is a cloud
-    // provider that was never configured with an API key, fall back to the
-    // on-device engine. This corrects installs created before on-device became
-    // the default, without overriding anyone who set up a cloud key or chose a
-    // local option (on-device / custom-Ollama / Apple Intelligence).
-    {
-        let selected = settings.post_process_provider_id.clone();
-        let configured = settings
-            .post_process_api_keys
-            .get(&selected)
-            .map(|key| !key.is_empty())
-            .unwrap_or(false);
-        let is_local_choice = selected == ON_DEVICE_PROVIDER_ID
-            || selected == "custom"
-            || selected == APPLE_INTELLIGENCE_PROVIDER_ID;
-        if !is_local_choice && !configured {
-            debug!(
-                "Refinement provider '{}' has no API key; defaulting to on-device",
-                selected
-            );
-            settings.post_process_provider_id = ON_DEVICE_PROVIDER_ID.to_string();
-            changed = true;
-        }
-    }
-
     changed
+}
+
+/// One-time migration that moves an install off an *unconfigured* cloud provider
+/// onto the on-device engine.
+///
+/// Installs created before the on-device engine became the default may have a
+/// cloud provider selected that was never given an API key, so the rewrite
+/// silently no-ops. This corrects exactly those installs — once. It runs at most
+/// once per install (guarded by `post_process_migrated_to_on_device`), so unlike
+/// a per-read default it never fights a *deliberate* cloud selection that simply
+/// has no key entered yet. A configured cloud key, or an explicit local choice
+/// (on-device / custom Ollama / Apple Intelligence), is always preserved.
+///
+/// Returns `true` when it changed something to persist (always true the first
+/// time it runs, since it at least records that the migration happened).
+fn migrate_unconfigured_cloud_to_on_device(settings: &mut AppSettings) -> bool {
+    if settings.post_process_migrated_to_on_device {
+        return false;
+    }
+    settings.post_process_migrated_to_on_device = true;
+
+    let selected = settings.post_process_provider_id.clone();
+    let configured = settings
+        .post_process_api_keys
+        .get(&selected)
+        .map(|key| !key.is_empty())
+        .unwrap_or(false);
+    let is_local_choice = selected == ON_DEVICE_PROVIDER_ID
+        || selected == "custom"
+        || selected == APPLE_INTELLIGENCE_PROVIDER_ID;
+    if !is_local_choice && !configured {
+        debug!(
+            "One-time migration: refinement provider '{}' has no API key; switching to on-device",
+            selected
+        );
+        settings.post_process_provider_id = ON_DEVICE_PROVIDER_ID.to_string();
+    }
+    true
 }
 
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
@@ -856,6 +876,9 @@ pub fn get_default_settings() -> AppSettings {
         post_process_models: default_post_process_models(),
         post_process_prompts: default_post_process_prompts(),
         post_process_selected_prompt_id: None,
+        // Fresh installs already default to the on-device provider, so there is
+        // nothing to migrate — mark it done so the one-time migration is a no-op.
+        post_process_migrated_to_on_device: true,
         mute_while_recording: false,
         append_trailing_space: false,
         app_language: default_app_language(),
@@ -941,7 +964,9 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         default_settings
     };
 
-    if ensure_post_process_defaults(&mut settings) {
+    let mut changed = ensure_post_process_defaults(&mut settings);
+    changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
+    if changed {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
@@ -965,7 +990,9 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         default_settings
     };
 
-    if ensure_post_process_defaults(&mut settings) {
+    let mut changed = ensure_post_process_defaults(&mut settings);
+    changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
+    if changed {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
 
