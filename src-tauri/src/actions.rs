@@ -5,7 +5,9 @@ use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
-use crate::settings::{get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID};
+use crate::settings::{
+    get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID, CLEAN_PROMPT_ID,
+};
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
 use crate::utils::{
@@ -45,8 +47,60 @@ pub trait ShortcutAction: Send + Sync {
 }
 
 // Transcribe Action
+//
+// `post_process` reflects which binding fired: the plain "transcribe" binding
+// (false) or "transcribe_with_post_process" (true). The actual rewrite behavior
+// is resolved at stop()-time against the master AI toggle — see `RewriteMode`.
 struct TranscribeAction {
     post_process: bool,
+}
+
+/// How the transcript should be rewritten before pasting.
+///
+/// - `Off`: paste the verbatim transcript (master AI toggle off, plain binding).
+/// - `Clean`: always-on auto-polish using the built-in clean prompt. This is the
+///   default behavior of the plain "transcribe" binding when the master AI toggle
+///   (`post_process_enabled`) is on.
+/// - `Prompt`: explicit rewrite using the user-selected prompt
+///   (`post_process_selected_prompt_id`), driven by the dedicated binding.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum RewriteMode {
+    Off,
+    Clean,
+    Prompt,
+}
+
+impl RewriteMode {
+    /// Resolve the rewrite mode from which binding fired plus the master toggle.
+    ///
+    /// - The Prompt-mode binding always rewrites with the selected prompt.
+    /// - The plain binding auto-polishes (Clean) when the master toggle is on,
+    ///   and otherwise pastes verbatim (Off).
+    fn resolve(post_process_binding: bool, post_process_enabled: bool) -> Self {
+        if post_process_binding {
+            RewriteMode::Prompt
+        } else if post_process_enabled {
+            RewriteMode::Clean
+        } else {
+            RewriteMode::Off
+        }
+    }
+
+    /// Whether this mode runs the LLM rewrite at all.
+    fn rewrites(self) -> bool {
+        matches!(self, RewriteMode::Clean | RewriteMode::Prompt)
+    }
+}
+
+/// Resolve a rewrite mode for a re-processed history entry.
+///
+/// History stores a single bool ("post-process requested"): true means the
+/// explicit Prompt-mode binding fired, false means the plain binding. We
+/// re-resolve against the current master toggle so re-running a plain entry
+/// honors the always-on Clean default when AI is now enabled.
+pub(crate) fn rewrite_mode_for_history(app: &AppHandle, post_process_requested: bool) -> RewriteMode {
+    let post_process_enabled = get_settings(app).post_process_enabled;
+    RewriteMode::resolve(post_process_requested, post_process_enabled)
 }
 
 /// Field name for structured output JSON schema
@@ -63,7 +117,51 @@ fn build_system_prompt(prompt_template: &str) -> String {
     prompt_template.replace("${output}", "").trim().to_string()
 }
 
-async fn post_process_transcription(settings: &AppSettings, transcription: &str) -> Option<String> {
+/// Resolve the prompt text to use for the given rewrite mode.
+///
+/// - `Clean` always uses the built-in clean prompt (`CLEAN_PROMPT_ID`), the
+///   always-on auto-polish, regardless of which prompt the user selected.
+/// - `Prompt` uses the user-selected prompt (`post_process_selected_prompt_id`).
+/// - `Off` never rewrites and therefore has no prompt.
+fn resolve_rewrite_prompt(settings: &AppSettings, mode: RewriteMode) -> Option<String> {
+    let prompt_id = match mode {
+        RewriteMode::Off => return None,
+        RewriteMode::Clean => CLEAN_PROMPT_ID.to_string(),
+        RewriteMode::Prompt => match &settings.post_process_selected_prompt_id {
+            Some(id) => id.clone(),
+            None => {
+                debug!("Prompt-mode rewrite skipped because no prompt is selected");
+                return None;
+            }
+        },
+    };
+
+    match settings
+        .post_process_prompts
+        .iter()
+        .find(|prompt| prompt.id == prompt_id)
+    {
+        Some(prompt) if !prompt.prompt.trim().is_empty() => Some(prompt.prompt.clone()),
+        Some(_) => {
+            debug!("Rewrite skipped because prompt '{}' is empty", prompt_id);
+            None
+        }
+        None => {
+            debug!("Rewrite skipped because prompt '{}' was not found", prompt_id);
+            None
+        }
+    }
+}
+
+async fn post_process_transcription(
+    settings: &AppSettings,
+    transcription: &str,
+    mode: RewriteMode,
+) -> Option<String> {
+    // Off never rewrites; resolve the prompt for the active mode first so we can
+    // bail out cleanly (and fall back to verbatim) before touching the provider.
+    let prompt = resolve_rewrite_prompt(settings, mode)?;
+
     let provider = match settings.active_post_process_provider().cloned() {
         Some(provider) => provider,
         None => {
@@ -83,34 +181,6 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
             "Post-processing skipped because provider '{}' has no model configured",
             provider.id
         );
-        return None;
-    }
-
-    let selected_prompt_id = match &settings.post_process_selected_prompt_id {
-        Some(id) => id.clone(),
-        None => {
-            debug!("Post-processing skipped because no prompt is selected");
-            return None;
-        }
-    };
-
-    let prompt = match settings
-        .post_process_prompts
-        .iter()
-        .find(|prompt| prompt.id == selected_prompt_id)
-    {
-        Some(prompt) => prompt.prompt.clone(),
-        None => {
-            debug!(
-                "Post-processing skipped because prompt '{}' was not found",
-                selected_prompt_id
-            );
-            return None;
-        }
-    };
-
-    if prompt.trim().is_empty() {
-        debug!("Post-processing skipped because the selected prompt is empty");
         return None;
     }
 
@@ -349,7 +419,7 @@ pub(crate) struct ProcessedTranscription {
 pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
-    post_process: bool,
+    mode: RewriteMode,
 ) -> ProcessedTranscription {
     let settings = get_settings(app);
     let mut final_text = transcription.to_string();
@@ -360,22 +430,21 @@ pub(crate) async fn process_transcription_output(
         final_text = converted_text;
     }
 
-    if post_process {
-        if let Some(processed_text) = post_process_transcription(&settings, &final_text).await {
+    if mode.rewrites() {
+        if let Some(processed_text) =
+            post_process_transcription(&settings, &final_text, mode).await
+        {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
 
-            if let Some(prompt_id) = &settings.post_process_selected_prompt_id {
-                if let Some(prompt) = settings
-                    .post_process_prompts
-                    .iter()
-                    .find(|prompt| &prompt.id == prompt_id)
-                {
-                    post_process_prompt = Some(prompt.prompt.clone());
-                }
-            }
+            // Record the prompt that was actually applied so history reflects
+            // the real transform (clean prompt for Clean, selected for Prompt).
+            post_process_prompt = resolve_rewrite_prompt(&settings, mode);
         }
+        // On any LLM error post_process_transcription returns None and we keep
+        // the verbatim text — graceful fallback to verbatim is preserved.
     } else if final_text != transcription {
+        // Verbatim path still records non-LLM transforms (e.g. Chinese variant).
         post_processed_text = Some(final_text.clone());
     }
 
@@ -511,7 +580,15 @@ impl ShortcutAction for TranscribeAction {
         play_feedback_sound(app, SoundType::Stop);
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
-        let post_process = self.post_process;
+
+        // Resolve the rewrite mode from which binding fired plus the master AI
+        // toggle: plain binding auto-polishes (Clean) when the toggle is on and
+        // is verbatim (Off) otherwise; the dedicated binding is always Prompt.
+        let post_process_enabled = get_settings(app).post_process_enabled;
+        let mode = RewriteMode::resolve(self.post_process, post_process_enabled);
+        // `post_process` (bool) is still what history records as "post-process
+        // requested" — true whenever an LLM rewrite actually runs for this mode.
+        let post_process = mode.rewrites();
 
         tauri::async_runtime::spawn(async move {
             let _guard = FinishGuard(ah.clone());
@@ -583,8 +660,7 @@ impl ShortcutAction for TranscribeAction {
                                 show_processing_overlay(&ah);
                             }
                             let processed =
-                                process_transcription_output(&ah, &transcription, post_process)
-                                    .await;
+                                process_transcription_output(&ah, &transcription, mode).await;
 
                             // Save to history if WAV was saved
                             if wav_saved {

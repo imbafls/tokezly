@@ -10,6 +10,12 @@ use tauri_plugin_store::StoreExt;
 pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
 pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
 
+/// Id of the built-in "clean" prompt. This is the always-on auto-polish prompt
+/// applied to plain dictation when the master AI toggle (`post_process_enabled`)
+/// is on. Prompt mode (the explicit binding) uses `post_process_selected_prompt_id`
+/// instead.
+pub const CLEAN_PROMPT_ID: &str = "default_improve_transcriptions";
+
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -640,7 +646,7 @@ fn default_post_process_models() -> HashMap<String, String> {
 
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![LLMPrompt {
-        id: "default_improve_transcriptions".to_string(),
+        id: CLEAN_PROMPT_ID.to_string(),
         name: "Improve Transcriptions".to_string(),
         prompt: "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation errors\n2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)\n3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)\n4. Remove filler words (um, uh, like as filler)\n5. Keep the language in the original version (if it was french, keep it in french for example)\n\nPreserve exact meaning and word order. Do not paraphrase or reorder content.\n\nReturn only the cleaned transcript.\n\nTranscript:\n${output}".to_string(),
     }]
@@ -713,14 +719,9 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
 
 pub fn get_default_settings() -> AppSettings {
-    #[cfg(target_os = "windows")]
+    // Tokezly uses ctrl+space for plain dictation on every platform so the
+    // primary "Dictate" binding is consistent across the apps the user runs.
     let default_shortcut = "ctrl+space";
-    #[cfg(target_os = "macos")]
-    let default_shortcut = "option+space";
-    #[cfg(target_os = "linux")]
-    let default_shortcut = "ctrl+space";
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    let default_shortcut = "alt+space";
 
     let mut bindings = HashMap::new();
     bindings.insert(
