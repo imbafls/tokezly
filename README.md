@@ -1,15 +1,15 @@
-# Strum
+# Tokezly
 
 A local-first, desktop-native dictation utility for engineers. Speak anywhere, get clean text
 everywhere — pasted straight at your cursor.
 
 Transcription is the base and it works standalone: hold a global hotkey, talk, and the verbatim
 text lands in whatever app has focus. The **AI rewrite** is an optional layer on top — turn it on
-and Strum polishes what you said (fillers and repeats gone, self-corrections applied, grammar
+and Tokezly polishes what you said (fillers and repeats gone, self-corrections applied, grammar
 fixed), or runs an explicit `/` instruction. The rewrite runs **fully on-device by default**;
 a cloud provider is available, strictly opt-in.
 
-At runtime Strum is almost nothing on screen: a tiny translucent capsule while you talk, a small
+At runtime Tokezly is almost nothing on screen: a tiny translucent capsule while you talk, a small
 popup as text streams, a paste toast, then gone. The only full window is Settings.
 
 ## Stack
@@ -43,13 +43,13 @@ Build a release bundle:
 bun run tauri build
 ```
 
-> **Port note:** Strum's dev server binds to **1430** (`--strictPort`). It fails loudly rather than
+> **Port note:** Tokezly's dev server binds to **1430** (`--strictPort`). It fails loudly rather than
 > silently falling back, so a port collision is obvious instead of mysterious.
 
 ## Repository layout
 
 ```
-strum/
+tokezly/
 ├── src/                      # React + TypeScript frontend
 │   ├── components/           #   settings panes, shared UI
 │   ├── stores/               #   zustand state (settings, models)
@@ -69,5 +69,5 @@ strum/
 
 ## License
 
-MIT. Strum's engine layer builds on [Handy](https://github.com/cjpais/Handy) (MIT, © CJ Pais);
+MIT. Tokezly's engine layer builds on [Handy](https://github.com/cjpais/Handy) (MIT, © CJ Pais);
 that copyright notice is retained in `LICENSE` as the license requires.

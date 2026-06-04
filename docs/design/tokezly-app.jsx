@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUM — mounts: playground, icon grid, shortcut table,
+   TOKEZLY — mounts: playground, icon grid, shortcut table,
    and all static window previews.
    ============================================================ */
 const { createRoot } = ReactDOM;
@@ -37,7 +37,7 @@ function Playground(){
           ))}
         </div>
       </div>
-      <StrumWindow interactive variant={variant} scrubNonce={nonce} runKey={runKey} refineKey={refineKey}/>
+      <TokezlyWindow interactive variant={variant} scrubNonce={nonce} runKey={runKey} refineKey={refineKey}/>
     </div>
   );
 }
@@ -92,23 +92,23 @@ function ShortcutTable(){
 /* ---------------- mount everything ---------------- */
 mount('#icon-grid', <IconGrid/>);
 mount('#shortcut-table', <ShortcutTable/>);
-mount('[data-mount="hero"]', <StrumWindow variant="listening"/>);
-mount('[data-mount="anatomy"]', <StrumWindow variant="listening"/>);
+mount('[data-mount="hero"]', <TokezlyWindow variant="listening"/>);
+mount('[data-mount="anatomy"]', <TokezlyWindow variant="listening"/>);
 mount('[data-mount="playground"]', <Playground/>);
-mount('[data-mount="mode-std"]', <StrumWindow variant="cleaning"/>);
-mount('[data-mount="mode-prompt"]', <StrumWindow variant="promptIdle"/>);
-mount('[data-mount="fb-listen"]', <StrumWindow variant="listening"/>);
-mount('[data-mount="fb-trans"]', <StrumWindow variant="transcribing"/>);
-mount('[data-mount="fb-refine"]', <StrumWindow variant="refining"/>);
-mount('[data-mount="eng-chip"]', <StrumWindow variant="transcribing"/>);
-mount('[data-mount="eng-picker"]', <StrumWindow variant="settings"/>);
-mount('[data-mount="ai-settings"]', <StrumWindow variant="settingsPrompt"/>);
+mount('[data-mount="mode-std"]', <TokezlyWindow variant="cleaning"/>);
+mount('[data-mount="mode-prompt"]', <TokezlyWindow variant="promptIdle"/>);
+mount('[data-mount="fb-listen"]', <TokezlyWindow variant="listening"/>);
+mount('[data-mount="fb-trans"]', <TokezlyWindow variant="transcribing"/>);
+mount('[data-mount="fb-refine"]', <TokezlyWindow variant="refining"/>);
+mount('[data-mount="eng-chip"]', <TokezlyWindow variant="transcribing"/>);
+mount('[data-mount="eng-picker"]', <TokezlyWindow variant="settings"/>);
+mount('[data-mount="ai-settings"]', <TokezlyWindow variant="settingsPrompt"/>);
 
 /* UI across configurations */
-mount('[data-mount="cfg-stt-idle"]', <StrumWindow variant="idle"/>);
-mount('[data-mount="cfg-stt-listen"]', <StrumWindow variant="listening"/>);
-mount('[data-mount="cfg-stt-toast"]', <StrumWindow variant="done"/>);
-mount('[data-mount="cfg-ai-idle"]', <StrumWindow variant="idle"/>);
-mount('[data-mount="cfg-ai-listen"]', <StrumWindow variant="listening"/>);
-mount('[data-mount="cfg-ai-clean"]', <StrumWindow variant="cleaning"/>);
-mount('[data-mount="cfg-ai-toast"]', <StrumWindow variant="cleanDone"/>);
+mount('[data-mount="cfg-stt-idle"]', <TokezlyWindow variant="idle"/>);
+mount('[data-mount="cfg-stt-listen"]', <TokezlyWindow variant="listening"/>);
+mount('[data-mount="cfg-stt-toast"]', <TokezlyWindow variant="done"/>);
+mount('[data-mount="cfg-ai-idle"]', <TokezlyWindow variant="idle"/>);
+mount('[data-mount="cfg-ai-listen"]', <TokezlyWindow variant="listening"/>);
+mount('[data-mount="cfg-ai-clean"]', <TokezlyWindow variant="cleaning"/>);
+mount('[data-mount="cfg-ai-toast"]', <TokezlyWindow variant="cleanDone"/>);

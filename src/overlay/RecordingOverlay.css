@@ -1,6 +1,6 @@
-/* ===================== STRUM RUNTIME OVERLAY ===================== */
+/* ===================== TOKEZLY RUNTIME OVERLAY ===================== */
 /* Capsule (listening) → Popup (transcribing / refining) → Toast (pasted). */
-/* Design tokens lifted from the Strum design spec. */
+/* Design tokens lifted from the Tokezly design spec. */
 :root {
   --tx: #ffffff;
   --tx-2: rgba(255, 255, 255, 0.786);

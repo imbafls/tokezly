@@ -1,5 +1,5 @@
 /* ============================================================
-   STRUM — tiny runtime UI (capsule + popups + toast) and the
+   TOKEZLY — tiny runtime UI (capsule + popups + toast) and the
    Settings window. WinUI 3 / Fluent. Exported to window.
    ============================================================ */
 const { useState, useEffect, useRef, useCallback } = React;
@@ -91,10 +91,10 @@ function Waveform({ active, bars=30, h=18 }){
 }
 
 /* ============================================================
-   StrumWindow — variant-driven tiny runtime UI + settings
+   TokezlyWindow — variant-driven tiny runtime UI + settings
    ============================================================ */
 function modeForVariant(v){ return (v==='promptIdle'||v==='refining'||v==='promptDone') ? 'prompt':'std'; }
-function StrumWindow({ variant="idle", interactive=false, runKey=0, refineKey=0, scrubNonce=0 }){
+function TokezlyWindow({ variant="idle", interactive=false, runKey=0, refineKey=0, scrubNonce=0 }){
   const [phase, setPhase] = useState(variant);
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef([]);
@@ -372,7 +372,7 @@ function PromptModePage(){
   return (
     <div className="set-main">
       <h4>AI Rewrite</h4>
-      <p className="sd">An optional layer on top of transcription. Off, Strum is a plain transcriber. On, it polishes what you said — fully on-device by default.</p>
+      <p className="sd">An optional layer on top of transcription. Off, Tokezly is a plain transcriber. On, it polishes what you said — fully on-device by default.</p>
 
       <div className="ai-master">
         <span className="ic"><I.sparkle/></span>
@@ -443,7 +443,7 @@ function EnginePickerWindow({ page="engines" }){
   return (
     <div className="win settings">
       <div className="win-chrome">
-        <div className="ttl"><svg viewBox="0 0 24 24" fill="none" style={{width:14,height:14}}><rect x="2" y="2" width="20" height="20" rx="5" stroke="var(--acc)" strokeWidth="1.5"/><path d="M7 15.5c1.5-7 3-7 4.5 0M16.5 8.5c-1.5 7-3 7-4.5 0" stroke="var(--acc)" strokeWidth="1.5" strokeLinecap="round"/></svg> Strum — Settings</div>
+        <div className="ttl"><svg viewBox="0 0 24 24" fill="none" style={{width:14,height:14}}><rect x="2" y="2" width="20" height="20" rx="5" stroke="var(--acc)" strokeWidth="1.5"/><path d="M7 15.5c1.5-7 3-7 4.5 0M16.5 8.5c-1.5 7-3 7-4.5 0" stroke="var(--acc)" strokeWidth="1.5" strokeLinecap="round"/></svg> Tokezly — Settings</div>
         <div className="winbtns">
           <div className="wb"><I.min/></div>
           <div className="wb"><I.max/></div>
@@ -461,4 +461,4 @@ function EnginePickerWindow({ page="engines" }){
   );
 }
 
-Object.assign(window, { StrumWindow, EnginePickerWindow, KeyCombo, Kbd, Ring, I });
+Object.assign(window, { TokezlyWindow, EnginePickerWindow, KeyCombo, Kbd, Ring, I });

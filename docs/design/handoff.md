@@ -1,4 +1,4 @@
-# Strum — Engineering Handoff
+# Tokezly — Engineering Handoff
 
 A local-first, desktop dictation utility. Speech in, clean text out, pasted wherever your
 cursor is. Transcription is the base; the AI rewrite is an optional layer on top, and it runs
@@ -31,7 +31,7 @@ on disk are the models, which are downloaded on first run — never committed.
 Create the tree below. Each crate owns one concern; the UI is a single thin frontend.
 
 ```
-strum/
+tokezly/
 ├── README.md
 ├── handoff.md
 ├── .gitignore
@@ -84,8 +84,8 @@ strum/
 **Bootstrap**
 
 ```bash
-git clone <repo-url> strum
-cd strum
+git clone <repo-url> tokezly
+cd tokezly
 
 # create the local-only workspace (never committed)
 mkdir -p local/models local/scratch

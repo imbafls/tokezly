@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Strum — Design Specification</title>
+<title>Tokezly — Design Specification</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -250,7 +250,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
 .btn-ghost svg{ width:15px; height:15px; }
 
 /* ====================================================================== */
-/* ============== STRUM WINDOW — translucent flyout + controls ===== */
+/* ============== TOKEZLY WINDOW — translucent flyout + controls ===== */
 /* ====================================================================== */
 .win{
   width:100%; max-width:560px; font-family:var(--sans); color:var(--tx);
@@ -658,7 +658,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
 <div class="topbar">
   <div class="brand">
     <svg class="logo-mark" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="var(--acc)" stroke-width="1.5"/><path d="M7 15.5c1.5-7 3-7 4.5 0M16.5 8.5c-1.5 7-3 7-4.5 0" stroke="var(--acc)" stroke-width="1.5" stroke-linecap="round"/></svg>
-    <b>STRUM</b><span>// design&nbsp;spec</span>
+    <b>TOKEZLY</b><span>// design&nbsp;spec</span>
   </div>
   <nav class="topnav">
     <a href="#language">Language</a>
@@ -669,7 +669,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
     <a href="#shortcuts">Shortcuts</a>
     <a href="#engines">Engines</a>
     <a href="#configs">States</a>
-    <a href="Strum Architecture.html" style="color:var(--acc-2)">Architecture →</a>
+    <a href="Tokezly Architecture.html" style="color:var(--acc-2)">Architecture →</a>
   </nav>
   <div class="ver">v0.1 · draft</div>
 </div>
@@ -679,7 +679,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ HERO ============ -->
   <header class="hero">
     <div class="kicker">Design Specification · Local-first dictation</div>
-    <h1>Strum<span class="dim">.</span></h1>
+    <h1>Tokezly<span class="dim">.</span></h1>
     <p class="lede">A high-performance, desktop-native transcriber for engineers. <b>Speak anywhere, get clean text everywhere.</b> At its core it's a fast local transcriber — speech to text, pasted anywhere, no AI required. Turn the AI rewrite on and it polishes what you said, fully on-device. At runtime it's almost nothing on screen: a tiny translucent capsule, a small popup, then gone. The only full window is Settings.</p>
     <div class="philo">
       <div class="chip"><i></i>Fully local</div>
@@ -704,7 +704,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ 01 VISUAL LANGUAGE ============ -->
   <section class="block" id="language">
     <div class="sec-head"><span class="sec-no">01</span><h2>Visual Language</h2></div>
-    <p class="sec-sub">Strum's own language: a dark neutral ramp, a single cyan <b>signal accent</b>, and a small set of <b>status colors</b>. Surfaces are translucent frosted-glass (runtime) and solid dark (Settings). One accent (<code>--acc</code> = <code>#60CDFF</code>) carries every active state; recording is the alert red; semantics show only as small dots.</p>
+    <p class="sec-sub">Tokezly's own language: a dark neutral ramp, a single cyan <b>signal accent</b>, and a small set of <b>status colors</b>. Surfaces are translucent frosted-glass (runtime) and solid dark (Settings). One accent (<code>--acc</code> = <code>#60CDFF</code>) carries every active state; recording is the alert red; semantics show only as small dots.</p>
 
     <div class="grid-2" style="margin-bottom:22px; align-items:start;">
       <div class="card">
@@ -732,7 +732,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
           <div style="display:flex; align-items:center; gap:13px;"><span style="width:9px;height:9px;border-radius:99px;background:#FF99A4"></span><span style="font-size:13px;color:var(--tx)">recording · offline · error</span><span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--tx-3)">alert · #FF99A4</span></div>
           <div style="display:flex; align-items:center; gap:13px;"><span style="width:9px;height:9px;border-radius:99px;background:#FCE100"></span><span style="font-size:13px;color:var(--tx)">updating / caution</span><span style="margin-left:auto;font-family:var(--mono);font-size:10.5px;color:var(--tx-3)">warn · #FCE100</span></div>
         </div>
-        <div class="note"><b>Color = state.</b> The accent and fill colors only appear while Strum is doing something. At rest, the capsule is pure neutral — it reads as part of the OS, not an app.</div>
+        <div class="note"><b>Color = state.</b> The accent and fill colors only appear while Tokezly is doing something. At rest, the capsule is pure neutral — it reads as part of the OS, not an app.</div>
       </div>
     </div>
 
@@ -783,7 +783,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
         <div class="anno"><span class="k">B</span><span class="v"><b>Waveform</b>Live mic amplitude — the only motion. Replaces a spinner: you can see it's hearing you.</span></div>
         <div class="anno"><span class="k">C</span><span class="v"><b>Timer</b>Elapsed seconds in Cascadia mono. That's the entire listening UI.</span></div>
         <div class="anno"><span class="k">→</span><span class="v"><b>Then it grows, briefly</b>When text arrives the capsule becomes a small popup (a spinner + engine hint + streaming text), then a paste toast, then nothing.</span></div>
-        <div class="note"><b>Footprint discipline:</b> nothing persistent. Strum is invisible until you summon it and gone the moment it has pasted. The capsule never docks or takes a window slot.</div>
+        <div class="note"><b>Footprint discipline:</b> nothing persistent. Tokezly is invisible until you summon it and gone the moment it has pasted. The capsule never docks or takes a window slot.</div>
       </div>
     </div>
   </section>
@@ -802,13 +802,13 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ 04 MODES ============ -->
   <section class="block" id="modes">
     <div class="sec-head"><span class="sec-no">04</span><h2>Transcribe → Clean → Prompt</h2></div>
-    <p class="sec-sub">Three behaviors, one base. With <b>AI off</b>, Strum is a plain transcriber — <code>Ctrl + Space</code> dictates and pastes verbatim. With <b>AI on</b>, the same dictation is auto-<b>cleaned</b> — fillers and repeats gone, self-corrections applied, grammar fixed. And <b>Prompt</b> — <code>Ctrl + Shift + Space</code> or typing <code>/</code> — runs an explicit instruction through the command popup. The AI layer is a single toggle in Settings, never clutter on the capsule.</p>
+    <p class="sec-sub">Three behaviors, one base. With <b>AI off</b>, Tokezly is a plain transcriber — <code>Ctrl + Space</code> dictates and pastes verbatim. With <b>AI on</b>, the same dictation is auto-<b>cleaned</b> — fillers and repeats gone, self-corrections applied, grammar fixed. And <b>Prompt</b> — <code>Ctrl + Shift + Space</code> or typing <code>/</code> — runs an explicit instruction through the command popup. The AI layer is a single toggle in Settings, never clutter on the capsule.</p>
 
     <div class="grid-2" style="align-items:start;">
       <div>
         <div class="preview-label"><span class="n">AI</span> Clean — auto-polish (default when AI on) <span class="d">streaming popup</span></div>
         <div class="stage" data-mount="mode-std"></div>
-        <p style="font-size:13px; color:var(--tx-3); line-height:1.55; margin-top:14px;">Speak a messy sentence → Strum pastes the polished version: fillers and repeats gone, self-corrections applied, grammar fixed. Turn AI off and this step is skipped — you get the verbatim transcript instead.</p>
+        <p style="font-size:13px; color:var(--tx-3); line-height:1.55; margin-top:14px;">Speak a messy sentence → Tokezly pastes the polished version: fillers and repeats gone, self-corrections applied, grammar fixed. Turn AI off and this step is skipped — you get the verbatim transcript instead.</p>
       </div>
       <div>
         <div class="preview-label"><span class="n" style="color:var(--acc)">/</span> Prompt — command popup <span class="d">command field</span></div>
@@ -868,7 +868,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ 06 SHORTCUTS ============ -->
   <section class="block" id="shortcuts">
     <div class="sec-head"><span class="sec-no">06</span><h2>System-Wide Shortcuts</h2></div>
-    <p class="sec-sub">Strum is a keyboard tool first — fired from inside your editor, terminal, or browser without ever clicking. The idle capsule shows its binding; every key here is a global hotkey, remappable in <b>Settings → Shortcuts</b>. Glyphs follow the host OS — Windows shown.</p>
+    <p class="sec-sub">Tokezly is a keyboard tool first — fired from inside your editor, terminal, or browser without ever clicking. The idle capsule shows its binding; every key here is a global hotkey, remappable in <b>Settings → Shortcuts</b>. Glyphs follow the host OS — Windows shown.</p>
     <div class="card" style="padding:8px 4px;">
       <div id="shortcut-table"></div>
     </div>
@@ -877,7 +877,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ 07 ENGINES ============ -->
   <section class="block" id="engines">
     <div class="sec-head"><span class="sec-no">07</span><h2>Engine Status &amp; Extensibility</h2></div>
-    <p class="sec-sub">Strum is engine-agnostic — Parakeet, Whisper, Moonshine and more swap underneath. The runtime never shows this complexity: at most a tiny status dot + model name in a popup header. Everything is managed in <b>Settings → Engines</b>, where ASR engines and the optional refinement model sit in clean <b>settings cards</b> — accuracy/speed meters, badges for Active/Local, local vs cloud made explicit.</p>
+    <p class="sec-sub">Tokezly is engine-agnostic — Parakeet, Whisper, Moonshine and more swap underneath. The runtime never shows this complexity: at most a tiny status dot + model name in a popup header. Everything is managed in <b>Settings → Engines</b>, where ASR engines and the optional refinement model sit in clean <b>settings cards</b> — accuracy/speed meters, badges for Active/Local, local vs cloud made explicit.</p>
 
     <div class="grid-2" style="align-items:center; gap:48px; margin-bottom:30px;">
       <div data-mount="eng-chip"></div>
@@ -904,7 +904,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
   <!-- ============ 08 UI ACROSS CONFIGURATIONS ============ -->
   <section class="block" id="configs">
     <div class="sec-head"><span class="sec-no">08</span><h2>UI across configurations</h2></div>
-    <p class="sec-sub">Strum scales its UI with capability — it never restructures. The <b>listening capsule is identical</b> whether or not AI is on; the only thing that changes is the <b>result stage</b>. Plain STT pastes silently behind a toast. With AI on, one small popup appears because there's a transform worth watching. Same vocabulary, one extra surface.</p>
+    <p class="sec-sub">Tokezly scales its UI with capability — it never restructures. The <b>listening capsule is identical</b> whether or not AI is on; the only thing that changes is the <b>result stage</b>. Plain STT pastes silently behind a toast. With AI on, one small popup appears because there's a transform worth watching. Same vocabulary, one extra surface.</p>
 
     <div class="cfg-grid">
       <div class="cfg">
@@ -929,13 +929,13 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
       </div>
     </div>
 
-    <div class="note" style="margin-top:20px; max-width:860px"><b>The rule:</b> turning AI on adds exactly one surface — the popup that shows the rewrite forming — and unlocks the <span style="color:var(--acc)">/</span> command. Everything else (the trigger pill, the listening capsule, the paste toast) is byte-for-byte the same. Features change <i>what</i> Strum does, never <i>how much window</i> it throws at you.</div>
+    <div class="note" style="margin-top:20px; max-width:860px"><b>The rule:</b> turning AI on adds exactly one surface — the popup that shows the rewrite forming — and unlocks the <span style="color:var(--acc)">/</span> command. Everything else (the trigger pill, the listening capsule, the paste toast) is byte-for-byte the same. Features change <i>what</i> Tokezly does, never <i>how much window</i> it throws at you.</div>
   </section>
 
   <!-- ============ FOOTER ============ -->
   <footer class="foot">
     <div class="row">
-      <div>STRUM · design specification · v0.2 draft</div>
+      <div>TOKEZLY · design specification · v0.2 draft</div>
       <div style="display:flex; gap:8px; align-items:center;"><span style="width:6px;height:6px;border-radius:99px;background:var(--ok)"></span> Parakeet V3 · ready</div>
     </div>
     <p style="margin-top:18px; color:var(--tx-4); max-width:700px; line-height:1.7;">Every runtime state above is a single live React component driven by props — a tiny translucent capsule, small popups, and a solid-dark settings window. A local-first transcriber for software / DevOps engineers — AI is optional, privacy is the default.</p>
@@ -947,7 +947,7 @@ section.block{ padding:74px 0; border-top:1px solid var(--line); }
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
-<script type="text/babel" src="strum-window.jsx"></script>
-<script type="text/babel" src="strum-app.jsx"></script>
+<script type="text/babel" src="tokezly-window.jsx"></script>
+<script type="text/babel" src="tokezly-app.jsx"></script>
 </body>
 </html>

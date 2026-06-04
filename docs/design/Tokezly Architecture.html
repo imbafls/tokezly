@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Strum — Architecture</title>
+<title>Tokezly — Architecture</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -169,7 +169,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
 <div class="topbar">
   <div class="brand">
     <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="var(--acc)" stroke-width="1.5"/><path d="M7 15.5c1.5-7 3-7 4.5 0M16.5 8.5c-1.5 7-3 7-4.5 0" stroke="var(--acc)" stroke-width="1.5" stroke-linecap="round"/></svg>
-    <b>STRUM</b><span>// architecture</span>
+    <b>TOKEZLY</b><span>// architecture</span>
   </div>
   <nav class="topnav">
     <a href="#call">The call</a>
@@ -180,7 +180,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
     <a href="#local">Local AI</a>
     <a href="#ext">Extensibility</a>
   </nav>
-  <a class="back" href="Strum Design Spec.html" style="font-size:13px;text-decoration:none;padding:6px 11px;border-radius:4px;">← Design spec</a>
+  <a class="back" href="Tokezly Design Spec.html" style="font-size:13px;text-decoration:none;padding:6px 11px;border-radius:4px;">← Design spec</a>
 </div>
 
 <div class="wrap">
@@ -188,7 +188,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
   <header class="hero">
     <div class="kicker">Architecture · Greenfield · AI-first</div>
     <h1>Architecture<span class="dim">.</span></h1>
-    <p class="lede">How Strum gets built — from scratch, as <b>our own project</b>. Not a fork: the thing Strum actually does is the <b>AI rewrite</b> — turning the messy sentence you said into the polished one you <i>meant</i>, in real time — so the inference engine is the core, co-designed with transcription for low latency. Lightweight by construction (a Rust core under a thin web UI), capable by design.</p>
+    <p class="lede">How Tokezly gets built — from scratch, as <b>our own project</b>. Not a fork: the thing Tokezly actually does is the <b>AI rewrite</b> — turning the messy sentence you said into the polished one you <i>meant</i>, in real time — so the inference engine is the core, co-designed with transcription for low latency. Lightweight by construction (a Rust core under a thin web UI), capable by design.</p>
   </header>
 
   <!-- 00 THE CALL -->
@@ -197,7 +197,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
     <div class="verdict">
       <div class="vh"><span class="dot"></span> Recommendation</div>
       <h3>Build it ourselves — the AI rewrite <i>is</i> the product, not a plugin.</h3>
-      <p>Strum's core trick isn't transcription, it's the <b>transform</b>: you speak a messy, half-formed sentence and Strum pastes the clean, properly-phrased version of <i>what you meant</i> — fillers gone, repetitions collapsed, mid-sentence self-corrections applied, grammar and structure fixed — in real time, by default. That's the category <b>Typeless</b> and Wispr Flow opened: intelligent dictation that listens for intent, not a verbatim transcript with a button bolted on.</p>
+      <p>Tokezly's core trick isn't transcription, it's the <b>transform</b>: you speak a messy, half-formed sentence and Tokezly pastes the clean, properly-phrased version of <i>what you meant</i> — fillers gone, repetitions collapsed, mid-sentence self-corrections applied, grammar and structure fixed — in real time, by default. That's the category <b>Typeless</b> and Wispr Flow opened: intelligent dictation that listens for intent, not a verbatim transcript with a button bolted on.</p>
       <p><b>That's exactly why we don't fork Handy.</b> Handy is architected verbatim-first — Audio → VAD → ASR → paste. Making an always-on AI rewrite a first-class, low-latency stage means owning the whole pipeline <i>and</i> the AI engine: streaming the LLM, overlapping its prefill with transcription, keeping it warm, and tuning it for these bounded rewrites. Stapling that onto a verbatim transcriber fights its design and blows its latency budget.</p>
       <p>We still keep the shell tiny (Rust core + thin web UI, no Electron) and we still learn from prior art — Handy for proven local-STT patterns, Typeless for the rewrite UX. We borrow the ideas, write our own code, and build the pipeline <i>around</i> the AI engine.</p>
     </div>
@@ -239,7 +239,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
         </div>
       </div>
     </div>
-    <div class="note" style="margin-top:18px"><b>The point:</b> Clean runs on <i>every</i> dictation by default — so it's the thing to optimize. The engine is tuned to do this transform fast and locally, which is a pipeline-and-inference decision, not a feature you can bolt onto a verbatim transcriber after the fact. And it's a <i>toggle</i> — turn the AI layer off entirely and Strum is a plain, fast transcriber; STT needs no model beyond the ASR engine.</div>
+    <div class="note" style="margin-top:18px"><b>The point:</b> Clean runs on <i>every</i> dictation by default — so it's the thing to optimize. The engine is tuned to do this transform fast and locally, which is a pipeline-and-inference decision, not a feature you can bolt onto a verbatim transcriber after the fact. And it's a <i>toggle</i> — turn the AI layer off entirely and Tokezly is a plain, fast transcriber; STT needs no model beyond the ASR engine.</div>
   </section>
 
   <!-- 01 STACK & FOOTPRINT -->
@@ -452,7 +452,7 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
         <h3>Trade-offs to design for</h3>
         <ul>
           <li><b>Disk &amp; RAM:</b> a ~2.6 GB model + headroom; offer the 1B on &lt;8 GB machines, detect at first run.</li>
-          <li><b>Cold start:</b> keep the model warm while Strum runs (toggle in Settings).</li>
+          <li><b>Cold start:</b> keep the model warm while Tokezly runs (toggle in Settings).</li>
           <li><b>Latency vs. cloud:</b> local 4B is a touch slower than cloud; the live ms makes the cost honest.</li>
           <li><b>Quality ceiling:</b> the 12B or cloud opt-in covers gnarly instructions.</li>
         </ul>
@@ -522,9 +522,9 @@ section.block{ padding:60px 0; border-top:1px solid var(--line); }
   </section>
 
   <footer class="foot">
-    <div>STRUM · architecture · v0.2 draft &nbsp;·&nbsp; greenfield · Rust core + thin web UI</div>
+    <div>TOKEZLY · architecture · v0.2 draft &nbsp;·&nbsp; greenfield · Rust core + thin web UI</div>
     <div style="margin-top:8px; color:var(--tx-4)">Reference / prior art — Handy (<a href="https://github.com/cjpais/Handy">cjpais/Handy</a>, MIT) for proven local-STT patterns. Gemma 3 QAT figures: Google Developers Blog. Estimates are for planning — validate on target hardware.</div>
-    <div style="margin-top:14px"><a href="Strum Design Spec.html" style="color:var(--acc-2);text-decoration:none">← Back to the design spec</a></div>
+    <div style="margin-top:14px"><a href="Tokezly Design Spec.html" style="color:var(--acc-2);text-decoration:none">← Back to the design spec</a></div>
   </footer>
 
 </div>
