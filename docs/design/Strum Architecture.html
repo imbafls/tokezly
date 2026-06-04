@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Strum — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#1b1b1b; --bg-grad:#202020;
+  --surf-1:#272727; --surf-2:#2b2b2b; --surf-3:#323232; --surf-4:#3a3a3a;
+  --line:rgba(255,255,255,.0698); --line-2:rgba(255,255,255,.10); --line-3:rgba(255,255,255,.14);
+  --tx:#fff; --tx-2:rgba(255,255,255,.786); --tx-3:rgba(255,255,255,.544); --tx-4:rgba(255,255,255,.363);
+  --acc:#60CDFF; --acc-2:#99EBFF; --acc-deep:#0078D4; --acc-dim:rgba(96,205,255,.14); --acc-dim-2:rgba(96,205,255,.30); --on-acc:#000;
+  --ok:#6CCB5F; --caution:#FCE100; --err:#FF99A4; --amber:#E6C07B;
+  --sans:"Segoe UI Variable Display","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --mono:"Cascadia Code","Cascadia Mono",Consolas,"JetBrains Mono",ui-monospace,monospace;
+  --r-win:8px; --r-md:4px;
+}
+*{ box-sizing:border-box; }
+html{ scroll-behavior:smooth; }
+body{ margin:0; background:radial-gradient(1100px 560px at 80% -8%, rgba(96,205,255,.05), transparent 60%), linear-gradient(180deg,var(--bg-grad),var(--bg) 46%); color:var(--tx); font-family:var(--sans); -webkit-font-smoothing:antialiased; }
+::selection{ background:var(--acc-dim-2); color:#fff; }
+*::-webkit-scrollbar{ width:14px; height:14px; }
+*::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.18); border-radius:99px; border:4px solid transparent; background-clip:content-box; }
+a{ color:inherit; }
+.wrap{ max-width:1140px; margin:0 auto; padding:0 40px; }
+
+/* topbar */
+.topbar{ position:sticky; top:0; z-index:50; display:flex; align-items:center; justify-content:space-between; height:48px; padding:0 22px; background:rgba(32,32,32,.72); backdrop-filter:blur(40px) saturate(1.3); border-bottom:1px solid var(--line); }
+.brand{ display:flex; align-items:center; gap:10px; font-size:13px; }
+.brand svg{ width:18px; height:18px; }
+.brand b{ font-weight:600; }
+.brand span{ color:var(--tx-3); font-family:var(--mono); font-size:11px; }
+.topnav{ display:flex; gap:2px; }
+.topnav a{ color:var(--tx-2); text-decoration:none; font-size:13px; padding:6px 11px; border-radius:var(--r-md); transition:.12s; }
+.topnav a:hover{ color:var(--tx); background:rgba(255,255,255,.06); }
+.topnav a.back{ color:var(--acc-2); }
+
+/* hero */
+.hero{ padding:84px 0 30px; }
+.kicker{ font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); display:flex; align-items:center; gap:12px; margin-bottom:24px; }
+.kicker::before{ content:""; width:26px; height:1px; background:var(--acc); opacity:.7; }
+.hero h1{ font-weight:600; font-size:clamp(48px,8vw,92px); line-height:.95; letter-spacing:-.035em; margin:0; }
+.hero h1 .dim{ color:var(--acc); }
+.hero .lede{ margin:24px 0 0; max-width:720px; font-size:18px; line-height:1.55; color:var(--tx-2); }
+.hero .lede b{ color:var(--tx); font-weight:600; }
+
+/* sections */
+section.block{ padding:60px 0; border-top:1px solid var(--line); }
+.sec-head{ display:flex; align-items:baseline; gap:16px; margin-bottom:12px; }
+.sec-no{ font-family:var(--mono); font-size:13px; color:var(--acc); }
+.sec-head h2{ font-weight:600; font-size:30px; letter-spacing:-.02em; margin:0; }
+.sec-sub{ max-width:760px; color:var(--tx-2); font-size:15px; line-height:1.55; margin:0 0 32px; }
+.sec-sub code,.inl{ font-family:var(--mono); font-size:.85em; color:var(--acc-2); background:var(--acc-dim); padding:1px 6px; border-radius:4px; }
+
+/* verdict callout */
+.verdict{ border:1px solid var(--acc-dim-2); background:rgba(96,205,255,.07); border-radius:var(--r-md); padding:24px 26px; }
+.verdict .vh{ display:flex; align-items:center; gap:9px; font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--acc-2); margin-bottom:12px; }
+.verdict .vh .dot{ width:7px; height:7px; border-radius:99px; background:var(--acc); }
+.verdict h3{ font-size:23px; margin:0 0 10px; letter-spacing:-.01em; }
+.verdict p{ color:var(--tx-2); font-size:15px; line-height:1.62; margin:0 0 12px; }
+.verdict p:last-child{ margin-bottom:0; }
+.verdict b{ color:var(--tx); }
+.verdict .warn{ color:var(--amber); font-weight:600; }
+
+/* comparison */
+.cmp{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.opt{ border:1px solid var(--line); border-radius:var(--r-md); padding:20px; background:rgba(255,255,255,.0512); position:relative; }
+.opt.pick{ border-color:var(--acc-dim-2); background:rgba(96,205,255,.06); }
+.opt .vb{ position:absolute; top:16px; right:16px; font-family:var(--mono); font-size:9px; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:99px; }
+.opt .vb.go{ color:var(--on-acc); background:var(--acc); }
+.opt .vb.maybe{ color:var(--tx-3); border:1px solid var(--line-2); }
+.opt h3{ font-size:17px; margin:0 6px 2px 0; max-width:75%; }
+.opt .st{ font-family:var(--mono); font-size:10.5px; color:var(--tx-3); margin-bottom:16px; display:block; }
+.opt ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.opt li{ font-size:12.5px; line-height:1.45; color:var(--tx-2); display:flex; gap:9px; }
+.opt li::before{ content:"+"; color:var(--ok); font-family:var(--mono); flex:none; font-weight:700; }
+.opt li.con::before{ content:"−"; color:var(--err); }
+
+/* layered architecture diagram */
+.legend{ display:flex; gap:20px; margin-bottom:16px; font-family:var(--mono); font-size:11px; color:var(--tx-2); flex-wrap:wrap; }
+.legend span{ display:inline-flex; align-items:center; gap:8px; }
+.legend .sw{ width:16px; height:11px; border-radius:3px; border:1px solid var(--line-2); background:rgba(255,255,255,.03); }
+.legend .sw.new{ border-color:var(--acc-dim-2); background:rgba(96,205,255,.16); }
+.legend .sw.os{ border-style:dashed; }
+.arch{ display:flex; flex-direction:column; gap:7px; }
+.layer{ display:grid; grid-template-columns:160px 1fr; border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; background:rgba(255,255,255,.0512); }
+.layer.os{ border-style:dashed; background:rgba(255,255,255,.025); }
+.layer .lname{ display:flex; flex-direction:column; justify-content:center; gap:3px; padding:14px; background:rgba(255,255,255,.02); border-right:1px solid var(--line); }
+.layer .lname b{ font-size:13px; }
+.layer .lname span{ font-family:var(--mono); font-size:9px; color:var(--tx-3); letter-spacing:.04em; }
+.lmods{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 14px; align-items:stretch; }
+.mod{ display:flex; flex-direction:column; gap:2px; padding:8px 11px; border:1px solid var(--line-2); border-radius:6px; background:rgba(255,255,255,.03); min-width:104px; justify-content:center; }
+.mod b{ font-size:12px; font-weight:600; display:flex; align-items:center; gap:6px; }
+.mod span{ font-family:var(--mono); font-size:9px; color:var(--tx-3); }
+.mod.new{ border-color:var(--acc-dim-2); background:rgba(96,205,255,.08); }
+.tag{ font-family:var(--mono); font-size:7.5px; letter-spacing:.08em; color:var(--on-acc); background:var(--acc); border-radius:3px; padding:1px 4px; }
+.ipc{ display:flex; justify-content:center; gap:28px; font-family:var(--mono); font-size:10.5px; color:var(--tx-3); padding:2px 0; }
+.ipc b{ color:var(--acc-2); font-weight:500; }
+
+/* flow */
+.flows{ display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.flowcard{ border:1px solid var(--line); border-radius:var(--r-md); background:rgba(255,255,255,.0512); padding:18px 20px; }
+.flowcard.alt{ border-color:var(--acc-dim-2); background:rgba(96,205,255,.05); }
+.flowcard .ft{ display:flex; align-items:center; gap:9px; font-size:14px; font-weight:600; margin-bottom:14px; }
+.flowcard .ft .badge{ font-family:var(--mono); font-size:9px; letter-spacing:.06em; text-transform:uppercase; padding:2px 7px; border-radius:99px; color:var(--tx-3); border:1px solid var(--line-2); }
+.flowcard.alt .ft .badge{ color:var(--on-acc); background:var(--acc); border:0; }
+.step{ display:grid; grid-template-columns:26px 1fr; gap:13px; padding:9px 0; border-bottom:1px solid var(--line); }
+.step:last-child{ border-bottom:0; }
+.step .n{ width:24px; height:24px; border-radius:99px; border:1px solid var(--line-2); color:var(--tx-3); display:grid; place-items:center; font-family:var(--mono); font-size:10.5px; }
+.step.hot .n{ background:var(--acc); color:#000; border-color:var(--acc); }
+.step .s b{ font-size:13px; color:var(--tx); font-weight:600; }
+.step .s span{ font-family:var(--mono); font-size:10.5px; color:var(--tx-3); display:block; margin-top:2px; line-height:1.4; }
+
+/* stats */
+.stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px; }
+.stat{ border:1px solid var(--line); border-radius:var(--r-md); padding:16px 18px; background:rgba(255,255,255,.0512); }
+.stat .v{ font-size:25px; font-weight:600; color:var(--acc-2); letter-spacing:-.01em; }
+.stat .v small{ font-size:14px; color:var(--tx-3); font-weight:400; }
+.stat .l{ font-family:var(--mono); font-size:10px; color:var(--tx-3); margin-top:5px; line-height:1.4; }
+
+/* tables */
+.tblwrap{ border:1px solid var(--line); border-radius:var(--r-md); overflow:hidden; }
+.tbl{ width:100%; border-collapse:collapse; font-size:13px; }
+.tbl th{ text-align:left; font-family:var(--mono); font-size:9.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--tx-3); padding:11px 14px; background:rgba(255,255,255,.02); border-bottom:1px solid var(--line-2); }
+.tbl td{ padding:12px 14px; border-bottom:1px solid var(--line); color:var(--tx-2); vertical-align:top; }
+.tbl tr:last-child td{ border-bottom:0; }
+.tbl td b{ color:var(--tx); font-weight:600; }
+.tbl .mono{ font-family:var(--mono); font-size:12px; }
+.tbl tr.pick td{ background:rgba(96,205,255,.07); }
+.pill{ font-family:var(--mono); font-size:9.5px; padding:2px 8px; border-radius:99px; }
+.pill.local{ color:var(--ok); background:rgba(108,203,95,.12); }
+.pill.cloud{ color:var(--acc-2); background:var(--acc-dim); }
+.pill.def{ color:var(--on-acc); background:var(--acc); }
+
+/* code */
+.code{ background:#161616; border:1px solid var(--line-2); border-radius:var(--r-md); padding:17px 19px; font-family:var(--mono); font-size:12.5px; line-height:1.75; color:var(--tx-2); overflow:auto; }
+.code .k{ color:var(--acc); } .code .ty{ color:var(--ok); } .code .cm{ color:var(--tx-4); } .code .st{ color:var(--amber); } .code .fn{ color:var(--acc-2); }
+
+/* generic card + note */
+.card{ background:rgba(255,255,255,.0512); border:1px solid var(--line); border-radius:var(--r-md); padding:20px 22px; }
+.card h3{ font-size:14px; margin:0 0 10px; }
+.card p,.card li{ color:var(--tx-2); font-size:13.5px; line-height:1.55; }
+.card ul{ margin:0; padding-left:17px; display:flex; flex-direction:column; gap:7px; }
+.grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.note{ font-size:13.5px; color:var(--tx-2); line-height:1.55; padding:14px 16px; border-left:3px solid var(--acc); background:rgba(96,205,255,.07); border-radius:0 var(--r-md) var(--r-md) 0; }
+.note b{ color:var(--acc-2); }
+.note.warn{ border-left-color:var(--amber); background:rgba(230,192,123,.08); }
+.note.warn b{ color:var(--amber); }
+
+.foot{ border-top:1px solid var(--line); padding:40px 0 70px; color:var(--tx-3); font-family:var(--mono); font-size:12px; line-height:1.7; }
+.foot a{ color:var(--acc-2); text-decoration:none; }
+
+@media(max-width:900px){
+  .wrap{ padding:0 22px; }
+  .cmp,.flows,.grid-2{ grid-template-columns:1fr; }
+  .stats{ grid-template-columns:1fr 1fr; }
+  .layer{ grid-template-columns:1fr; }
+  .layer .lname{ border-right:0; border-bottom:1px solid var(--line); }
+  .topnav{ display:none; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="5" stroke="var(--acc)" stroke-width="1.5"/><path d="M7 15.5c1.5-7 3-7 4.5 0M16.5 8.5c-1.5 7-3 7-4.5 0" stroke="var(--acc)" stroke-width="1.5" stroke-linecap="round"/></svg>
+    <b>STRUM</b><span>// architecture</span>
+  </div>
+  <nav class="topnav">
+    <a href="#call">The call</a>
+    <a href="#stack">Stack</a>
+    <a href="#aicore">AI core</a>
+    <a href="#system">System</a>
+    <a href="#flows">Flows</a>
+    <a href="#local">Local AI</a>
+    <a href="#ext">Extensibility</a>
+  </nav>
+  <a class="back" href="Strum Design Spec.html" style="font-size:13px;text-decoration:none;padding:6px 11px;border-radius:4px;">← Design spec</a>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="kicker">Architecture · Greenfield · AI-first</div>
+    <h1>Architecture<span class="dim">.</span></h1>
+    <p class="lede">How Strum gets built — from scratch, as <b>our own project</b>. Not a fork: the thing Strum actually does is the <b>AI rewrite</b> — turning the messy sentence you said into the polished one you <i>meant</i>, in real time — so the inference engine is the core, co-designed with transcription for low latency. Lightweight by construction (a Rust core under a thin web UI), capable by design.</p>
+  </header>
+
+  <!-- 00 THE CALL -->
+  <section class="block" id="call">
+    <div class="sec-head"><span class="sec-no">00</span><h2>The call</h2></div>
+    <div class="verdict">
+      <div class="vh"><span class="dot"></span> Recommendation</div>
+      <h3>Build it ourselves — the AI rewrite <i>is</i> the product, not a plugin.</h3>
+      <p>Strum's core trick isn't transcription, it's the <b>transform</b>: you speak a messy, half-formed sentence and Strum pastes the clean, properly-phrased version of <i>what you meant</i> — fillers gone, repetitions collapsed, mid-sentence self-corrections applied, grammar and structure fixed — in real time, by default. That's the category <b>Typeless</b> and Wispr Flow opened: intelligent dictation that listens for intent, not a verbatim transcript with a button bolted on.</p>
+      <p><b>That's exactly why we don't fork Handy.</b> Handy is architected verbatim-first — Audio → VAD → ASR → paste. Making an always-on AI rewrite a first-class, low-latency stage means owning the whole pipeline <i>and</i> the AI engine: streaming the LLM, overlapping its prefill with transcription, keeping it warm, and tuning it for these bounded rewrites. Stapling that onto a verbatim transcriber fights its design and blows its latency budget.</p>
+      <p>We still keep the shell tiny (Rust core + thin web UI, no Electron) and we still learn from prior art — Handy for proven local-STT patterns, Typeless for the rewrite UX. We borrow the ideas, write our own code, and build the pipeline <i>around</i> the AI engine.</p>
+    </div>
+
+    <h3 style="font-size:18px; margin:36px 0 6px; letter-spacing:-.01em;">The transform — three levels of “fix what I said”</h3>
+    <p class="sec-sub" style="margin-bottom:18px">Same words in, different polish out. <b style="color:var(--tx)">Clean</b> is the default — the always-on text-shuffle that turns speech into writing. Verbatim and Prompt sit on either side of it, and all three run through the same optimized engine.</p>
+    <div class="cmp">
+      <div class="opt">
+        <span class="vb maybe">Literal</span>
+        <h3>Verbatim</h3>
+        <span class="st">raw ASR · opt-in</span>
+        <div style="font-family:var(--mono);font-size:11px;line-height:1.55">
+          <div style="color:var(--tx-4)">you say</div>
+          <div style="color:var(--tx-3);margin:2px 0 10px">“um so the the websocket thing it doesn't back off it just hammers the endpoint”</div>
+          <div style="color:var(--tx-4)">you get</div>
+          <div style="color:var(--tx-2)">um so the the websocket thing it doesn't back off it just hammers the endpoint</div>
+        </div>
+      </div>
+      <div class="opt pick">
+        <span class="vb go">Default</span>
+        <h3>Clean</h3>
+        <span class="st">always-on AI polish</span>
+        <div style="font-family:var(--mono);font-size:11px;line-height:1.55">
+          <div style="color:var(--tx-4)">you say</div>
+          <div style="color:var(--tx-3);margin:2px 0 10px">“um so the the websocket thing it doesn't back off it just hammers the endpoint”</div>
+          <div style="color:var(--tx-4)">you get</div>
+          <div style="color:var(--acc-2)">The WebSocket reconnect doesn't back off — it hammers the endpoint.</div>
+        </div>
+      </div>
+      <div class="opt">
+        <span class="vb maybe">On command</span>
+        <h3>Prompt</h3>
+        <span class="st">/ instruction</span>
+        <div style="font-family:var(--mono);font-size:11px;line-height:1.55">
+          <div style="color:var(--tx-4)">you say <span style="color:var(--acc)">+ /commit</span></div>
+          <div style="color:var(--tx-3);margin:2px 0 10px">“…it just hammers the endpoint”</div>
+          <div style="color:var(--tx-4)">you get</div>
+          <div style="color:var(--acc-2)">fix(ws): add backoff to reconnect loop</div>
+        </div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:18px"><b>The point:</b> Clean runs on <i>every</i> dictation by default — so it's the thing to optimize. The engine is tuned to do this transform fast and locally, which is a pipeline-and-inference decision, not a feature you can bolt onto a verbatim transcriber after the fact. And it's a <i>toggle</i> — turn the AI layer off entirely and Strum is a plain, fast transcriber; STT needs no model beyond the ASR engine.</div>
+  </section>
+
+  <!-- 01 STACK & FOOTPRINT -->
+  <section class="block" id="stack">
+    <div class="sec-head"><span class="sec-no">01</span><h2>Stack &amp; footprint</h2></div>
+    <p class="sec-sub">You want light, not bloat, but capable. The app's real weight is the <b style="color:var(--tx)">ML models (GBs)</b> — identical on any framework — so the <b style="color:var(--tx)">shell</b> should add as close to nothing as possible. That rules out Electron and points at a Rust core with a thin web UI (Tauri-class), or a pure-Rust GUI if you'll trade UI polish for grams.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">~30–80 <small>MB</small></div><div class="l">idle RAM · shell shares the system WebView</div></div>
+      <div class="stat"><div class="v">~3–10 <small>MB</small></div><div class="l">shell in the installer · no Chromium</div></div>
+      <div class="stat"><div class="v" style="color:var(--err)">~150+ <small>MB</small></div><div class="l">Electron idle RAM · bundled Chromium</div></div>
+      <div class="stat"><div class="v">Rust</div><div class="l">native audio · VAD · ASR · local LLM</div></div>
+    </div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Shell</th><th>Idle RAM*</th><th>Installer (shell)</th><th>UI styling</th><th>Effort</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr class="pick"><td><b>Rust core + web UI</b> <span class="pill def">Pick</span><br/><span style="font-size:11px;color:var(--tx-3)">Tauri-class</span></td><td class="mono">~30–80 MB</td><td class="mono">~3–10 MB</td><td>CSS — easy</td><td>medium</td><td style="color:var(--ok)">Light + capable</td></tr>
+          <tr><td><b>egui</b><br/><span style="font-size:11px;color:var(--tx-3)">pure Rust, no WebView</span></td><td class="mono">~20–50 MB</td><td class="mono">~5–15 MB</td><td>manual (immediate-mode)</td><td>med–high</td><td>Leanest · less polish</td></tr>
+          <tr><td><b>Native (C#/.NET or C++/Qt)</b><br/><span style="font-size:11px;color:var(--tx-3)">platform UI</span></td><td class="mono">~60–120 MB</td><td class="mono">~20–40 MB</td><td>native widgets</td><td>high</td><td>Heavier build</td></tr>
+          <tr><td><b>Electron</b><br/><span style="font-size:11px;color:var(--tx-3)">bundled Chromium</span></td><td class="mono" style="color:var(--err)">~150–350 MB</td><td class="mono" style="color:var(--err)">~85–150 MB</td><td>CSS — easy</td><td>low</td><td style="color:var(--err)">Bloat — avoid</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-family:var(--mono); font-size:10.5px; color:var(--tx-4); margin:10px 0 0;">* Shell/runtime only, excluding loaded ML models. Planning estimates — measure on target hardware.</p>
+    <div class="note" style="margin-top:18px"><b>Bottom line:</b> a <b>Rust core under a thin web UI</b> is the sweet spot — Electron-free footprint, native-Rust capability, and the AI runtime lives in Rust where it belongs. Reach for <span class="inl">egui</span> only if you want the absolute minimum and will hand-build the UI; reach for native only if a platform demands it.</div>
+  </section>
+
+  <!-- 02 AI INFERENCE CORE -->
+  <section class="block" id="aicore">
+    <div class="sec-head"><span class="sec-no">02</span><h2>The AI inference core</h2></div>
+    <p class="sec-sub">This is the part we build deliberately, and the reason to go greenfield. One runtime hosts <b>both</b> the ASR engine and the refinement LLM behind a single compute scheduler — so they share the GPU instead of fighting over it, stay warm, and stream into one another. Everything else in the app serves this pipeline.</p>
+
+    <div class="grid-2" style="margin-bottom:24px">
+      <div class="card" style="border-color:var(--acc-dim-2); background:rgba(96,205,255,.05)">
+        <h3 style="color:var(--acc-2)">What the core owns</h3>
+        <ul>
+          <li><b>One backend, shared.</b> A single compute abstraction (CUDA · Metal · Vulkan · CPU) used by ASR and LLM; GPU access is scheduled, never contended.</li>
+          <li><b>Warm by default.</b> A model-lifecycle manager keeps the active ASR + LLM resident under a memory budget — the first keystroke pays no cold-start.</li>
+          <li><b>Streaming &amp; overlap.</b> ASR emits partials; the instant the transcript stabilizes, LLM <i>prefill</i> begins — hiding refinement latency behind transcription.</li>
+          <li><b>Quantized &amp; cache-aware.</b> int8 ASR, int4 (QAT) LLM, KV-cache reuse for the standing system prompt, pinned buffers.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why this is the win</h3>
+        <ul>
+          <li>Refinement feels <b>instant</b> because most of its cost overlaps work you're already doing.</li>
+          <li>Memory stays <b>predictable</b> — one budget governs both models, no surprise OOM when Prompt Mode fires.</li>
+          <li>Swapping a model (ASR or LLM) is a <b>config change</b>, not a re-architecture.</li>
+          <li>Fully local by default; cloud is a provider behind the same interface.</li>
+        </ul>
+      </div>
+    </div>
+
+    <p style="font-family:var(--mono); font-size:11px; color:var(--tx-3); margin:0 0 10px; letter-spacing:.04em;">Latency budget · warm models, GPU (targets)</p>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Stage</th><th>Target</th><th>How we hit it</th></tr></thead>
+        <tbody>
+          <tr><td><b>Hotkey → capsule visible</b></td><td class="mono">&lt; 30 ms</td><td>core emits event; UI is a 46px pill</td></tr>
+          <tr><td><b>Speech → first ASR partial</b></td><td class="mono">~150–300 ms</td><td>streaming ASR, VAD-trimmed input</td></tr>
+          <tr><td><b>End of speech → final transcript</b></td><td class="mono">~real-time</td><td>partials finalize as you stop</td></tr>
+          <tr class="pick"><td><b>Final → first refined token</b></td><td class="mono">~200–400 ms</td><td>LLM prefill overlapped with ASR finalize</td></tr>
+          <tr><td><b>Prompt rewrite (1 sentence)</b></td><td class="mono">~0.6–1 s</td><td>4B int4, capped max_tokens, streamed</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 03 SYSTEM -->
+  <section class="block" id="system">
+    <div class="sec-head"><span class="sec-no">03</span><h2>System architecture</h2></div>
+    <p class="sec-sub">A Rust core organized by a <b>manager pattern</b>, talking to a thin web UI over a <b>command ↑ / event ↓</b> bridge. Engines sit behind traits so they're swappable from day one. The <span style="color:var(--acc-2)">AI inference core</span> (highlighted) is the spine.</p>
+
+    <div class="legend">
+      <span><i class="sw new"></i> AI inference core</span>
+      <span><i class="sw"></i> Supporting module</span>
+      <span><i class="sw os"></i> OS service</span>
+    </div>
+
+    <div class="arch">
+      <div class="layer">
+        <div class="lname"><b>Frontend</b><span>thin web UI</span></div>
+        <div class="lmods">
+          <div class="mod"><b>Capsule</b><span>listening pill</span></div>
+          <div class="mod"><b>Popups</b><span>stream · refine · toast</span></div>
+          <div class="mod"><b>Command popup</b><span>/ rewrites</span></div>
+          <div class="mod"><b>Settings</b><span>sidebar nav</span></div>
+          <div class="mod"><b>Prompt-Mode page</b><span>AI tuning</span></div>
+          <div class="mod"><b>State</b><span>reactive store</span></div>
+        </div>
+      </div>
+
+      <div class="ipc"><span><b>▲</b> commands &nbsp;invoke()</span><span><b>▼</b> events &nbsp;emit()</span></div>
+
+      <div class="layer">
+        <div class="lname"><b>Rust core</b><span>managers</span></div>
+        <div class="lmods">
+          <div class="mod"><b>App / Window</b><span>tray · single-instance</span></div>
+          <div class="mod"><b>Hotkey daemon</b><span>global</span></div>
+          <div class="mod"><b>Audio mgr</b><span>capture</span></div>
+          <div class="mod"><b>VAD</b><span>Silero</span></div>
+          <div class="mod"><b>Session orchestrator</b><span>state machine</span></div>
+          <div class="mod new"><b>Inference core <span class="tag">AI</span></b><span>ASR + LLM scheduler</span></div>
+          <div class="mod"><b>Paste / inject</b><span>clipboard · a11y</span></div>
+        </div>
+      </div>
+
+      <div class="layer">
+        <div class="lname"><b>Engine layer</b><span>behind traits</span></div>
+        <div class="lmods">
+          <div class="mod"><b>AsrEngine</b><span>trait</span></div>
+          <div class="mod"><b>Parakeet</b><span>CPU · default</span></div>
+          <div class="mod"><b>Whisper</b><span>GPU · accuracy</span></div>
+          <div class="mod" style="min-width:60px"><b>…</b><span>Moonshine · Canary</span></div>
+          <div class="mod new"><b>RefinementProvider <span class="tag">AI</span></b><span>trait</span></div>
+          <div class="mod new"><b>Gemma 3 4B <span class="tag">AI</span></b><span>local · default</span></div>
+          <div class="mod new"><b>Cloud LLM <span class="tag">AI</span></b><span>opt-in</span></div>
+        </div>
+      </div>
+
+      <div class="layer">
+        <div class="lname"><b>Storage</b><span>persistence</span></div>
+        <div class="lmods">
+          <div class="mod"><b>Settings store</b><span>key-value</span></div>
+          <div class="mod"><b>History</b><span>transcripts</span></div>
+          <div class="mod"><b>Model cache</b><span>app_data/models</span></div>
+          <div class="mod"><b>Credential vault</b><span>OS keychain</span></div>
+        </div>
+      </div>
+
+      <div class="layer os">
+        <div class="lname"><b>OS services</b><span>platform</span></div>
+        <div class="lmods">
+          <div class="mod"><b>Microphone</b><span>CoreAudio · WASAPI · ALSA</span></div>
+          <div class="mod"><b>Global shortcuts</b><span>system hotkeys</span></div>
+          <div class="mod"><b>Clipboard / a11y</b><span>paste target</span></div>
+          <div class="mod"><b>GPU / CPU</b><span>CUDA · Metal · Vulkan</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 FLOWS -->
+  <section class="block" id="flows">
+    <div class="sec-head"><span class="sec-no">04</span><h2>Data flows</h2></div>
+    <p class="sec-sub">Every path shares one capture front-end. <b>Clean</b> (the default) adds a light AI polish pass after ASR; <b>Prompt</b> swaps in an explicit instruction; Verbatim skips the rewrite. The inference core overlaps the LLM's prefill with ASR finalization, so the rewrite is already starting as you stop talking.</p>
+    <div class="flows">
+      <div class="flowcard">
+        <div class="ft">Clean dictation <span class="badge">default</span></div>
+        <div class="step"><span class="n">1</span><div class="s"><b>Hotkey fires</b><span>core emits “listening”</span></div></div>
+        <div class="step"><span class="n">2</span><div class="s"><b>Capsule appears</b><span>UI renders the waveform pill</span></div></div>
+        <div class="step"><span class="n">3</span><div class="s"><b>Capture + VAD</b><span>mic → Silero trims silence</span></div></div>
+        <div class="step"><span class="n">4</span><div class="s"><b>ASR streams</b><span>Parakeet / Whisper → raw transcript</span></div></div>
+        <div class="step hot"><span class="n">5</span><div class="s"><b>Clean pass</b><span>fillers/repeats removed, self-corrections + grammar fixed · local LLM</span></div></div>
+        <div class="step"><span class="n">6</span><div class="s"><b>Paste + toast</b><span>inject at cursor → dismiss</span></div></div>
+      </div>
+      <div class="flowcard alt">
+        <div class="ft">Prompt mode <span class="badge">AI rewrite</span></div>
+        <div class="step"><span class="n">1</span><div class="s"><b>Hotkey or “/”</b><span>command popup opens</span></div></div>
+        <div class="step"><span class="n">2</span><div class="s"><b>Instruction + dictation</b><span>pick a preset / type · speak the payload</span></div></div>
+        <div class="step"><span class="n">3</span><div class="s"><b>ASR streams</b><span>same capture → transcript stabilizes</span></div></div>
+        <div class="step hot"><span class="n">4</span><div class="s"><b>Refinement (overlapped)</b><span>LLM prefill starts on stabilize · Gemma 3 4B local or cloud</span></div></div>
+        <div class="step hot"><span class="n">5</span><div class="s"><b>Stream → paste</b><span>tokens flash in popup · latency shown · paste</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 LOCAL AI -->
+  <section class="block" id="local">
+    <div class="sec-head"><span class="sec-no">05</span><h2>Feasibility: fully-local STT + AI</h2></div>
+    <p class="sec-sub">Can the AI step stay on-device like transcription does? <b>Yes — and it's the default.</b> Gemma 3 4B is the right size: small enough to ship, fast enough to feel instant, capable enough for bounded rewrites.</p>
+
+    <div class="verdict" style="margin-bottom:26px">
+      <div class="vh"><span class="dot"></span> Verdict</div>
+      <h3>Fully Local by default. Gemma 3 4B (QAT int4) is the refinement engine.</h3>
+      <p>Prompt-Mode tasks are <b>bounded rewrites</b> — commit messages, grammar fixes, tone shifts, list/JSON formatting — not long-form reasoning. A 4B instruct model handles these comfortably, and quantization-aware training keeps int4 quality within a few points of full precision. Running it in-process means <b>audio <i>and</i> text never leave the machine</b>. Cloud stays available as an opt-in for maximum quality.</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="v">~2.6 <small>GB</small></div><div class="l">Gemma 3 4B · int4 weights (QAT)</div></div>
+      <div class="stat"><div class="v">8 <small>GB VRAM</small></div><div class="l">runs comfortably · or CPU</div></div>
+      <div class="stat"><div class="v">≈ BF16</div><div class="l">QAT quality · within a few Elo points</div></div>
+      <div class="stat"><div class="v">~3.5 <small>GB</small></div><div class="l">total resident · Parakeet + Gemma 4B</div></div>
+    </div>
+
+    <div class="tblwrap" style="margin-bottom:18px">
+      <table class="tbl">
+        <thead><tr><th>Refinement model</th><th>Size (int4)</th><th>Runs on</th><th>Rewrite latency*</th><th>Quality</th><th>Network</th></tr></thead>
+        <tbody>
+          <tr><td><b>Gemma 3 1B</b><br/><span style="font-size:11px;color:var(--tx-3)">low-RAM fallback</span></td><td class="mono">~0.8 GB</td><td>any laptop · iGPU</td><td class="mono">&lt;0.5 s</td><td>good for simple fixes</td><td><span class="pill local">Local</span></td></tr>
+          <tr class="pick"><td><b>Gemma 3 4B</b> <span class="pill def">Default</span><br/><span style="font-size:11px;color:var(--tx-3)">QAT Q4_0</span></td><td class="mono">~2.6 GB</td><td>8 GB GPU · or CPU</td><td class="mono">~0.6–1 s</td><td>strong for rewrites</td><td><span class="pill local">Local</span></td></tr>
+          <tr><td><b>Gemma 3 12B</b><br/><span style="font-size:11px;color:var(--tx-3)">quality mode</span></td><td class="mono">~6.6 GB</td><td>12 GB+ GPU</td><td class="mono">~1–2 s</td><td>excellent</td><td><span class="pill local">Local</span></td></tr>
+          <tr><td><b>Cloud model</b><br/><span style="font-size:11px;color:var(--tx-3)">opt-in</span></td><td class="mono">—</td><td>provider API</td><td class="mono">~0.3–0.5 s</td><td>top-tier</td><td><span class="pill cloud">Cloud</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-family:var(--mono); font-size:10.5px; color:var(--tx-4); margin:0 0 26px;">* Short rewrite (~1 sentence), warm model. GPU figures; pure-CPU adds ~1–3 s. Keep <span style="color:var(--tx-3)">max_tokens</span> low for snappy Prompt-Mode output.</p>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>How it plugs into the core</h3>
+        <ul>
+          <li><b>In-process, no daemon:</b> bind llama.cpp from Rust (<span class="inl">llama-cpp-2</span> / <span class="inl">mistral.rs</span> / candle) so there's nothing external to install — an Ollama sidecar is a valid quick path while bootstrapping.</li>
+          <li><b>One model manager:</b> Gemma GGUFs download &amp; cache beside the ASR models.</li>
+          <li><b>Shared scheduler:</b> the LLM and ASR queue on the same compute backend — no GPU thrash.</li>
+          <li><b>Pure-CPU option:</b> <span class="inl">gemma.cpp</span> for machines with no usable GPU.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trade-offs to design for</h3>
+        <ul>
+          <li><b>Disk &amp; RAM:</b> a ~2.6 GB model + headroom; offer the 1B on &lt;8 GB machines, detect at first run.</li>
+          <li><b>Cold start:</b> keep the model warm while Strum runs (toggle in Settings).</li>
+          <li><b>Latency vs. cloud:</b> local 4B is a touch slower than cloud; the live ms makes the cost honest.</li>
+          <li><b>Quality ceiling:</b> the 12B or cloud opt-in covers gnarly instructions.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note warn" style="margin-top:18px"><b>Privacy framing:</b> default to <b>fully local</b> (audio + text on-device). Make any cloud refinement an explicit, clearly-labelled opt-in — a model marked <span style="color:var(--acc-2)">Cloud</span> and a one-time notice the first time data would leave the machine. Turn cloud on with an <b>API key</b> or a single <b>sign-on (SSO)</b> login that stores an auth token.</div>
+  </section>
+
+  <!-- 06 EXTENSIBILITY -->
+  <section class="block" id="ext">
+    <div class="sec-head"><span class="sec-no">06</span><h2>Extensibility — two traits</h2></div>
+    <p class="sec-sub">We design clean interfaces from day one. Adding a new ASR model or refinement provider means implementing one trait and registering it — the settings UI is generated from the registry.</p>
+    <div class="grid-2">
+      <div>
+        <p style="font-family:var(--mono); font-size:11px; color:var(--tx-3); margin:0 0 8px; letter-spacing:.04em;">ASR · transcription engine</p>
+        <div class="code"><span class="k">pub trait</span> <span class="ty">AsrEngine</span> {
+  <span class="k">fn</span> <span class="fn">load</span>(&amp;<span class="k">mut</span> self, model: <span class="ty">ModelHandle</span>) -&gt; <span class="ty">Result</span>&lt;()&gt;;
+  <span class="k">fn</span> <span class="fn">stream</span>(
+    &amp;self,
+    pcm: &amp;[<span class="ty">f32</span>],
+    on_partial: <span class="k">impl</span> <span class="ty">FnMut</span>(<span class="ty">Partial</span>),
+  ) -&gt; <span class="ty">Result</span>&lt;<span class="ty">Transcript</span>&gt;;
+  <span class="k">fn</span> <span class="fn">caps</span>(&amp;self) -&gt; <span class="ty">EngineCaps</span>; <span class="cm">// langs, gpu…</span>
+}</div>
+      </div>
+      <div>
+        <p style="font-family:var(--mono); font-size:11px; color:var(--acc); margin:0 0 8px; letter-spacing:.04em;">REFINEMENT · Prompt-Mode engine</p>
+        <div class="code"><span class="k">pub trait</span> <span class="ty">RefinementProvider</span> {
+  <span class="k">async fn</span> <span class="fn">rewrite</span>(
+    &amp;self,
+    text: &amp;<span class="ty">str</span>,
+    instruction: &amp;<span class="ty">str</span>,
+    ctx: <span class="ty">PromptCtx</span>,        <span class="cm">// selection, clipboard</span>
+    on_token: <span class="k">impl</span> <span class="ty">FnMut</span>(<span class="ty">Token</span>),
+  ) -&gt; <span class="ty">Result</span>&lt;<span class="ty">String</span>&gt;;
+  <span class="k">fn</span> <span class="fn">locality</span>(&amp;self) -&gt; <span class="ty">Locality</span>; <span class="cm">// Local | Cloud</span>
+}
+<span class="cm">// impls: GemmaLocal, OllamaLocal, CloudProvider</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 BUILD -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-no">07</span><h2>Bootstrapping &amp; risks</h2></div>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Project shape</h3>
+        <ul>
+          <li>Rust workspace, crate-per-concern: <span class="inl">audio</span> · <span class="inl">vad</span> · <span class="inl">asr</span> · <span class="inl">llm</span> · <span class="inl">core</span> · <span class="inl">app</span></li>
+          <li>Thin web UI (our Fluent-sleek frontend) over the command/event bridge</li>
+          <li>Per-OS bundles; models downloaded on first run, not bundled</li>
+          <li>Code-sign + notarize; in-app auto-update</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Open questions / risks</h3>
+        <ul>
+          <li>Bundle vs. download the default Gemma GGUF (installer size vs. first-run UX)</li>
+          <li>GPU detection &amp; graceful CPU fallback across vendors</li>
+          <li>Keeping models warm without idle VRAM waste</li>
+          <li>Overlay focus-steal on some Linux compositors — the capsule must never grab focus before paste</li>
+          <li>Cloud opt-in consent UX + key storage in the OS vault</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div>STRUM · architecture · v0.2 draft &nbsp;·&nbsp; greenfield · Rust core + thin web UI</div>
+    <div style="margin-top:8px; color:var(--tx-4)">Reference / prior art — Handy (<a href="https://github.com/cjpais/Handy">cjpais/Handy</a>, MIT) for proven local-STT patterns. Gemma 3 QAT figures: Google Developers Blog. Estimates are for planning — validate on target hardware.</div>
+    <div style="margin-top:14px"><a href="Strum Design Spec.html" style="color:var(--acc-2);text-decoration:none">← Back to the design spec</a></div>
+  </footer>
+
+</div>
+</body>
+</html>
