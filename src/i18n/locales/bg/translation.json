@@ -100,7 +100,7 @@
     },
     "permissions": {
       "title": "Необходими разрешения",
-      "description": "Handy се нуждае от няколко разрешения, за да работи правилно.",
+      "description": "Tokezly се нуждае от няколко разрешения, за да работи правилно.",
       "microphone": {
         "title": "Достъп до микрофон",
         "description": "Необходим е, за да чуе гласа ви при транскрипция."
@@ -159,7 +159,7 @@
     "general": {
       "title": "Общи",
       "shortcut": {
-        "title": "Бързи клавиши на Handy",
+        "title": "Бързи клавиши на Tokezly",
         "description": "Настройте клавишни комбинации за стартиране на запис за реч към текст",
         "loading": "Зареждане на бързите клавиши...",
         "none": "Няма настроени бързи клавиши",
@@ -277,11 +277,11 @@
       },
       "autostart": {
         "label": "Стартиране със системата",
-        "description": "Автоматично стартиране на Handy при влизане в профила ви."
+        "description": "Автоматично стартиране на Tokezly при влизане в профила ви."
       },
       "showTrayIcon": {
         "label": "Икона в системната област",
-        "description": "Показване на иконата на Handy в системната област."
+        "description": "Показване на иконата на Tokezly в системната област."
       },
       "overlay": {
         "title": "Позиция на наслагването",
@@ -428,7 +428,16 @@
         "description": "Rewrites run on-device by default — audio and text never leave this machine unless you opt into a cloud provider.",
         "badge": "Default"
       },
-      "providerGroup": "Provider"
+      "providerGroup": "Provider",
+      "onDevice": {
+        "title": "On-device model",
+        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
+        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
+        "download": "Download on-device model (~1.6 GB)",
+        "downloading": "Downloading… {{percent}}%",
+        "ready": "Model ready",
+        "error": "Download failed. Check your connection and try again."
+      }
     },
     "history": {
       "title": "История",
@@ -457,7 +466,7 @@
       },
       "updateChecks": {
         "label": "Проверка за актуализации",
-        "description": "Автоматична проверка за нови версии на Handy"
+        "description": "Автоматична проверка за нови версии на Tokezly"
       },
       "soundTheme": {
         "label": "Звукова тема",
@@ -525,11 +534,11 @@
       "title": "За приложението",
       "version": {
         "title": "Версия",
-        "description": "Текуща версия на Handy"
+        "description": "Текуща версия на Tokezly"
       },
       "appDataDirectory": {
         "title": "Папка с данни на приложението",
-        "description": "Мястото, където Handy съхранява данните си"
+        "description": "Мястото, където Tokezly съхранява данните си"
       },
       "sourceCode": {
         "title": "Изходен код",
@@ -538,7 +547,7 @@
       },
       "supportDevelopment": {
         "title": "Подкрепете разработката",
-        "description": "Помогнете ни да продължим да развиваме Handy",
+        "description": "Помогнете ни да продължим да развиваме Tokezly",
         "button": "Дарение"
       },
       "acknowledgments": {
@@ -546,7 +555,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Високопроизводително изпълнение на автоматичния модел за разпознаване на реч Whisper на OpenAI",
-          "details": "Handy използва Whisper.cpp за бързо локално реч-към-текст. Благодарности на Georgi Gerganov и сътрудниците за отличната работа."
+          "details": "Tokezly използва Whisper.cpp за бързо локално реч-към-текст. Благодарности на Georgi Gerganov и сътрудниците за отличната работа."
         }
       }
     }
@@ -592,7 +601,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Необходими са разрешения за достъпност",
-    "permissionsDescription": "Handy се нуждае от разрешения за достъпност, за да въвежда транскрибирания текст.",
+    "permissionsDescription": "Tokezly се нуждае от разрешения за достъпност, за да въвежда транскрибирания текст.",
     "openSettings": "Отваряне на системните настройки",
     "dismiss": "Затваряне"
   },
@@ -615,10 +624,16 @@
   },
   "appLanguage": {
     "title": "Език на приложението",
-    "description": "Промяна на езика на интерфейса на Handy"
+    "description": "Промяна на езика на интерфейса на Tokezly"
   },
   "overlay": {
     "transcribing": "Транскрибиране...",
-    "processing": "Обработка..."
+    "processing": "Обработка...",
+    "pasted": "Pasted to cursor",
+    "pasteMode": {
+      "verbatim": "· verbatim",
+      "cleaned": "· cleaned",
+      "prompt": "· commit message"
+    }
   }
 }

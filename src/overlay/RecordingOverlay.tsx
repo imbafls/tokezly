@@ -166,7 +166,7 @@ const RecordingOverlay: React.FC = () => {
               />
             ))}
           </div>
-          <span className="timer">{elapsed.toFixed(1)}s</span>
+          <span className="timer">{`${elapsed.toFixed(1)}s`}</span>
           <div
             className="cap-cancel"
             title="Cancel"

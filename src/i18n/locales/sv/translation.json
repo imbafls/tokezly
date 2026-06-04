@@ -100,7 +100,7 @@
     },
     "permissions": {
       "title": "Behörigheter krävs",
-      "description": "Handy behöver ett par behörigheter för att fungera korrekt.",
+      "description": "Tokezly behöver ett par behörigheter för att fungera korrekt.",
       "microphone": {
         "title": "Mikrofonåtkomst",
         "description": "Krävs för att höra din röst för transkription."
@@ -159,7 +159,7 @@
     "general": {
       "title": "Allmänt",
       "shortcut": {
-        "title": "Handy-kortkommandon",
+        "title": "Tokezly-kortkommandon",
         "description": "Konfigurera kortkommandon för att starta tal-till-text-inspelning",
         "loading": "Laddar kortkommandon...",
         "none": "Inga kortkommandon konfigurerade",
@@ -277,11 +277,11 @@
       },
       "autostart": {
         "label": "Starta vid uppstart",
-        "description": "Starta Handy automatiskt när du loggar in på din dator."
+        "description": "Starta Tokezly automatiskt när du loggar in på din dator."
       },
       "showTrayIcon": {
         "label": "Visa ikon i systemfältet",
-        "description": "Visa Handy-ikonen i systemfältet."
+        "description": "Visa Tokezly-ikonen i systemfältet."
       },
       "overlay": {
         "title": "Överlagringsposition",
@@ -428,7 +428,16 @@
         "description": "Rewrites run on-device by default — audio and text never leave this machine unless you opt into a cloud provider.",
         "badge": "Default"
       },
-      "providerGroup": "Provider"
+      "providerGroup": "Provider",
+      "onDevice": {
+        "title": "On-device model",
+        "descriptionReady": "The local refinement model is downloaded and ready. Rewrites run fully in-process — no network, no daemon.",
+        "descriptionMissing": "Download the local refinement model to run rewrites fully on-device. One-time download; stored on this machine.",
+        "download": "Download on-device model (~1.6 GB)",
+        "downloading": "Downloading… {{percent}}%",
+        "ready": "Model ready",
+        "error": "Download failed. Check your connection and try again."
+      }
     },
     "history": {
       "title": "Historik",
@@ -457,7 +466,7 @@
       },
       "updateChecks": {
         "label": "Sök efter uppdateringar",
-        "description": "Sök automatiskt efter nya versioner av Handy"
+        "description": "Sök automatiskt efter nya versioner av Tokezly"
       },
       "soundTheme": {
         "label": "Ljudtema",
@@ -525,11 +534,11 @@
       "title": "Om",
       "version": {
         "title": "Version",
-        "description": "Nuvarande version av Handy"
+        "description": "Nuvarande version av Tokezly"
       },
       "appDataDirectory": {
         "title": "Mapp för appdata",
-        "description": "Plats där Handy lagrar sina data"
+        "description": "Plats där Tokezly lagrar sina data"
       },
       "sourceCode": {
         "title": "Källkod",
@@ -538,7 +547,7 @@
       },
       "supportDevelopment": {
         "title": "Stöd utvecklingen",
-        "description": "Hjälp oss att fortsätta bygga Handy",
+        "description": "Hjälp oss att fortsätta bygga Tokezly",
         "button": "Donera"
       },
       "acknowledgments": {
@@ -546,7 +555,7 @@
         "whisper": {
           "title": "Whisper.cpp",
           "description": "Högpresterande inferens av OpenAI:s Whisper-modell för automatisk taligenkänning",
-          "details": "Handy använder Whisper.cpp för snabb, lokal tal-till-text-behandling. Tack till det fantastiska arbete som utförts av Georgi Gerganov med medarbetare."
+          "details": "Tokezly använder Whisper.cpp för snabb, lokal tal-till-text-behandling. Tack till det fantastiska arbete som utförts av Georgi Gerganov med medarbetare."
         }
       }
     }
@@ -592,7 +601,7 @@
   },
   "accessibility": {
     "permissionsRequired": "Behörigheter för hjälpmedel krävs",
-    "permissionsDescription": "Handy behöver behörighet för hjälpmedel för att kunna skriva transkriberad text.",
+    "permissionsDescription": "Tokezly behöver behörighet för hjälpmedel för att kunna skriva transkriberad text.",
     "openSettings": "Öppna systeminställningar",
     "dismiss": "Avvisa"
   },
@@ -615,10 +624,16 @@
   },
   "appLanguage": {
     "title": "Applikationsspråk",
-    "description": "Ändra språket i Handy-gränssnittet"
+    "description": "Ändra språket i Tokezly-gränssnittet"
   },
   "overlay": {
     "transcribing": "Transkriberar...",
-    "processing": "Bearbetar..."
+    "processing": "Bearbetar...",
+    "pasted": "Pasted to cursor",
+    "pasteMode": {
+      "verbatim": "· verbatim",
+      "cleaned": "· cleaned",
+      "prompt": "· commit message"
+    }
   }
 }
