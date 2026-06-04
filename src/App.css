@@ -1,14 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  /* Design tokens */
-  --color-text: #0f0f0f;
-  --color-background: #fbfbfb;
-  --color-background-ui: #da5893;
-  --color-logo-primary: #faa2ca;
-  --color-logo-stroke: #382731;
-  --color-text-stroke: #f6f6f6;
-  --color-mid-gray: #808080;
+  /* Tokezly design tokens — dark, faintly green-tinted; one mint-teal accent. */
+  --color-text: #e9f2ee;
+  --color-text-2: #9db0a9;
+  --color-text-3: #61746d;
+  --color-text-4: #3c4844;
+  --color-background: #0a0e0d;
+  --color-surface: #131b19;
+  --color-surface-2: #1a2421;
+  --color-surface-3: #223029;
+  --color-background-ui: #2fe0a6;
+  --color-accent: #2fe0a6;
+  --color-accent-2: #54ecbb;
+  --color-teal: #21ccc6;
+  --color-blue: #38b6f2;
+  --color-ink: #04110d;
+  --color-logo-primary: #2fe0a6;
+  --color-logo-stroke: #04110d;
+  --color-text-stroke: #131b19;
+  --color-mid-gray: #61746d;
+  --color-line: rgba(255, 255, 255, 0.08);
 }
 
 :root {
@@ -52,13 +64,13 @@
   text-align: center;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Tokezly is dark-only — keep the palette identical regardless of OS theme. */
+@media (prefers-color-scheme: light) {
   :root {
-    /* Colors - Dark Theme */
-    --color-text: #fbfbfb;
-    --color-background: #2c2b29;
-    --color-logo-primary: #f28cbb;
-    --color-logo-stroke: #fad1ed;
+    --color-text: #e9f2ee;
+    --color-background: #0a0e0d;
+    --color-logo-primary: #2fe0a6;
+    --color-logo-stroke: #04110d;
   }
 }
 
