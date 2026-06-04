@@ -10,6 +10,15 @@ use tauri_plugin_store::StoreExt;
 pub const APPLE_INTELLIGENCE_PROVIDER_ID: &str = "apple_intelligence";
 pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
 
+/// Id of the in-process, on-device refinement provider. Selecting this provider
+/// runs the LLM rewrite fully locally via the embedded llama.cpp engine
+/// (`refinement.rs`) instead of over HTTP. See `crate::refinement`.
+pub const ON_DEVICE_PROVIDER_ID: &str = "on_device";
+
+/// Default model id surfaced for the on-device provider. Matches the GGUF
+/// filename the engine loads from the app-data `models/` dir.
+pub const ON_DEVICE_DEFAULT_MODEL_ID: &str = "gemma-2-2b-it-Q4_K_M.gguf";
+
 /// Id of the built-in "clean" prompt. This is the always-on auto-polish prompt
 /// applied to plain dictation when the master AI toggle (`post_process_enabled`)
 /// is on. Prompt mode (the explicit binding) uses `post_process_selected_prompt_id`
@@ -524,11 +533,26 @@ fn default_show_tray_icon() -> bool {
 }
 
 fn default_post_process_provider_id() -> String {
-    "openai".to_string()
+    // Fully-local-by-default: the in-process on-device engine is the default
+    // refinement provider. It degrades gracefully to verbatim when the model
+    // has not been downloaded yet, so this is safe as a zero-config default.
+    ON_DEVICE_PROVIDER_ID.to_string()
 }
 
 fn default_post_process_providers() -> Vec<PostProcessProvider> {
     let mut providers = vec![
+        // In-process, on-device engine (no daemon, no network). This is the
+        // "fully local by default" refinement path. The base_url is a sentinel:
+        // the rewrite path detects this provider id and runs `crate::refinement`
+        // in-process instead of issuing an HTTP request.
+        PostProcessProvider {
+            id: ON_DEVICE_PROVIDER_ID.to_string(),
+            label: "On-device (local)".to_string(),
+            base_url: "on-device://local".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+            supports_structured_output: false,
+        },
         PostProcessProvider {
             id: "openai".to_string(),
             label: "OpenAI".to_string(),
@@ -629,6 +653,9 @@ fn default_post_process_api_keys() -> SecretMap {
 fn default_model_for_provider(provider_id: &str) -> String {
     if provider_id == APPLE_INTELLIGENCE_PROVIDER_ID {
         return APPLE_INTELLIGENCE_DEFAULT_MODEL_ID.to_string();
+    }
+    if provider_id == ON_DEVICE_PROVIDER_ID {
+        return ON_DEVICE_DEFAULT_MODEL_ID.to_string();
     }
     String::new()
 }

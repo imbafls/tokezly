@@ -58,7 +58,7 @@ tokio = "1.43.0"
 vad-rs = { git = "https://github.com/cjpais/vad-rs", default-features = false }
 enigo = "0.6.1"
 rodio = { git = "https://github.com/cjpais/rodio.git" }
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "blocking"] }
 futures-util = "0.3"
 rustfft = "6.4.0"
 strsim = "0.11.0"
@@ -70,6 +70,18 @@ tar = "0.4.44"
 flate2 = "1.0"
 sha2 = "0.10"
 transcribe-rs = { version = "0.3.8", features = ["whisper-cpp", "onnx"] }
+# In-process, on-device LLM refinement engine (loads GGUF, runs on CPU via
+# the vendored llama.cpp built with cmake). The default feature set pulls in
+# `openmp`, which needs an OpenMP runtime that is not reliably present on the
+# MSVC toolchain, so we opt out of defaults and enable only the `sampler`
+# ergonomic API. CPU-only: no cuda/vulkan/metal features. Chat-template
+# formatting is done in-crate so no extra feature is required.
+llama-cpp-2 = { version = "0.1.146", default-features = false, features = [
+  "sampler",
+] }
+# Text decoder used to turn generated tokens back into UTF-8 strings via
+# `LlamaModel::token_to_piece` (which takes an `encoding_rs::Decoder`).
+encoding_rs = "0.8"
 handy-keys = "0.2.4"
 ferrous-opencc = "0.2.3"
 clap = { version = "4", features = ["derive"] }

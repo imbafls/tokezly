@@ -5,8 +5,10 @@ use crate::audio_toolkit::{is_microphone_access_denied, is_no_input_device_error
 use crate::managers::audio::AudioRecordingManager;
 use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
+use crate::refinement::OnDeviceEngine;
 use crate::settings::{
     get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID, CLEAN_PROMPT_ID,
+    ON_DEVICE_PROVIDER_ID,
 };
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
@@ -154,6 +156,7 @@ fn resolve_rewrite_prompt(settings: &AppSettings, mode: RewriteMode) -> Option<S
 }
 
 async fn post_process_transcription(
+    app: &AppHandle,
     settings: &AppSettings,
     transcription: &str,
     mode: RewriteMode,
@@ -169,6 +172,14 @@ async fn post_process_transcription(
             return None;
         }
     };
+
+    // In-process, on-device path: no HTTP, no daemon. When the on-device
+    // provider is selected we run the embedded llama.cpp engine directly. It
+    // degrades gracefully — if the model is not downloaded, this returns None
+    // and the caller keeps the verbatim transcript.
+    if provider.id == ON_DEVICE_PROVIDER_ID {
+        return refine_on_device(app, &prompt, transcription).await;
+    }
 
     let model = settings
         .post_process_models
@@ -366,6 +377,70 @@ async fn post_process_transcription(
     }
 }
 
+/// Run the rewrite fully in-process via the on-device llama.cpp engine.
+///
+/// Returns the cleaned text, or `None` (graceful fallback to verbatim) when the
+/// model is not downloaded, the engine is unavailable, or inference fails.
+/// Inference is CPU-bound so it runs on a blocking thread, keeping the tokio
+/// runtime and the transcription pipeline responsive.
+async fn refine_on_device(
+    app: &AppHandle,
+    prompt: &str,
+    transcription: &str,
+) -> Option<String> {
+    let engine = match app.try_state::<Arc<OnDeviceEngine>>() {
+        Some(engine) => engine.inner().clone(),
+        None => {
+            warn!("On-device provider selected but engine state is missing");
+            return None;
+        }
+    };
+
+    if !engine.is_model_available() {
+        debug!(
+            "On-device model not downloaded yet; falling back to verbatim transcript"
+        );
+        return None;
+    }
+
+    // The prompt template carries a `${output}` placeholder for the legacy
+    // HTTP path; the in-process engine sends the transcript as a separate user
+    // turn, so strip the placeholder out of the instruction.
+    let system_prompt = build_system_prompt(prompt);
+    let user_text = transcription.to_string();
+
+    let result = tauri::async_runtime::spawn_blocking(move || {
+        engine.refine(&system_prompt, &user_text)
+    })
+    .await;
+
+    match result {
+        Ok(Ok(Some(cleaned))) => {
+            let cleaned = strip_invisible_chars(&cleaned);
+            debug!(
+                "On-device refinement succeeded. Output length: {} chars",
+                cleaned.len()
+            );
+            Some(cleaned)
+        }
+        Ok(Ok(None)) => {
+            debug!("On-device refinement returned no output; keeping verbatim transcript");
+            None
+        }
+        Ok(Err(e)) => {
+            error!(
+                "On-device refinement failed: {}. Falling back to verbatim transcript.",
+                e
+            );
+            None
+        }
+        Err(e) => {
+            error!("On-device refinement task panicked: {}. Falling back to verbatim.", e);
+            None
+        }
+    }
+}
+
 async fn maybe_convert_chinese_variant(
     settings: &AppSettings,
     transcription: &str,
@@ -432,7 +507,7 @@ pub(crate) async fn process_transcription_output(
 
     if mode.rewrites() {
         if let Some(processed_text) =
-            post_process_transcription(&settings, &final_text, mode).await
+            post_process_transcription(app, &settings, &final_text, mode).await
         {
             post_processed_text = Some(processed_text.clone());
             final_text = processed_text;
