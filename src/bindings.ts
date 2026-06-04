@@ -745,6 +745,44 @@ async unloadModelManually() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+/**
+ * Whether the on-device refinement model is downloaded and ready.
+ */
+async isOnDeviceModelAvailable() : Promise<boolean> {
+    return await TAURI_INVOKE("is_on_device_model_available");
+},
+/**
+ * Download the default on-device refinement model into the app-data models dir.
+ * 
+ * Streams progress via the `on-device-model-download-progress` event (a float
+ * percentage). Idempotent: if the model is already present this returns
+ * immediately. The partial download is written to a `.partial` file and only
+ * renamed into place once complete, so an interrupted download never leaves a
+ * half-written model that the engine would try to load.
+ */
+async downloadOnDeviceModel() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("download_on_device_model") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+/**
+ * Run a refinement through the on-device engine and return the cleaned text.
+ * 
+ * Primarily a smoke/diagnostic entry point: lets the frontend (or a manual
+ * invocation) prove in-process inference works without going through the full
+ * dictation pipeline. Returns an error if the model is not downloaded.
+ */
+async refineTextOnDevice(instruction: string, text: string) : Promise<Result<string, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("refine_text_on_device", { instruction, text }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getHistoryEntries(cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_history_entries", { cursor, limit }) };
