@@ -31,6 +31,8 @@ interface SectionConfig {
   enabled: (settings: any) => boolean;
 }
 
+// Order here defines the Tokezly navigation order:
+// General · Engines · AI Rewrite · Advanced · History (+ optional Debug · About).
 export const SECTIONS_CONFIG = {
   general: {
     labelKey: "sidebar.general",
@@ -44,6 +46,14 @@ export const SECTIONS_CONFIG = {
     component: ModelsSettings,
     enabled: () => true,
   },
+  postprocessing: {
+    labelKey: "sidebar.postProcessing",
+    icon: Sparkles,
+    component: PostProcessingSettings,
+    // AI Rewrite is a first-class Tokezly page with its own master toggle,
+    // so it is always reachable from the nav.
+    enabled: () => true,
+  },
   advanced: {
     labelKey: "sidebar.advanced",
     icon: Cog,
@@ -55,12 +65,6 @@ export const SECTIONS_CONFIG = {
     icon: History,
     component: HistorySettings,
     enabled: () => true,
-  },
-  postprocessing: {
-    labelKey: "sidebar.postProcessing",
-    icon: Sparkles,
-    component: PostProcessingSettings,
-    enabled: (settings) => settings?.post_process_enabled ?? false,
   },
   debug: {
     labelKey: "sidebar.debug",
@@ -93,9 +97,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-40 h-full border-e border-mid-gray/20 items-center px-2">
-      <HandyTextLogo width={120} className="m-4" />
-      <div className="flex flex-col w-full items-center gap-1 pt-2 border-t border-mid-gray/20">
+    <div className="flex flex-col w-44 h-full border-e border-line bg-surface/40 items-stretch px-2">
+      <HandyTextLogo width={120} className="mx-auto my-4" />
+      <div className="flex flex-col w-full gap-0.5 pt-2 border-t border-line">
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -103,14 +107,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
           return (
             <div
               key={section.id}
-              className={`flex gap-2 items-center p-2 w-full rounded-lg cursor-pointer transition-colors ${
+              className={`relative flex gap-3 items-center py-2.5 px-3 w-full rounded-lg cursor-pointer transition-colors ${
                 isActive
-                  ? "bg-logo-primary/80"
-                  : "hover:bg-mid-gray/20 hover:opacity-100 opacity-85"
+                  ? "bg-surface-3 text-text"
+                  : "text-text-2 hover:bg-surface-2 hover:text-text"
               }`}
               onClick={() => onSectionChange(section.id)}
             >
-              <Icon width={24} height={24} className="shrink-0" />
+              {isActive && (
+                <span className="absolute start-0 top-1/2 -translate-y-1/2 h-4 w-[3px] rounded-full bg-accent" />
+              )}
+              <Icon
+                width={18}
+                height={18}
+                className={`shrink-0 ${isActive ? "text-accent" : ""}`}
+              />
               <p
                 className="text-sm font-medium truncate"
                 title={t(section.labelKey)}

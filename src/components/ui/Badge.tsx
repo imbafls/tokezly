@@ -2,7 +2,7 @@ import React from "react";
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: "primary" | "success" | "secondary";
+  variant?: "primary" | "success" | "secondary" | "local";
   className?: string;
 }
 
@@ -12,14 +12,15 @@ const Badge: React.FC<BadgeProps> = ({
   className = "",
 }) => {
   const variantClasses = {
-    primary: "bg-logo-primary",
+    primary: "bg-accent text-ink",
     success: "bg-green-500/20 text-green-400",
-    secondary: "bg-mid-gray/20 text-text/70",
+    secondary: "bg-surface-3 text-text-2",
+    local: "border border-accent/35 text-accent",
   };
 
   return (
     <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${variantClasses[variant]} ${className}`}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${variantClasses[variant]} ${className}`}
     >
       {children}
     </span>

@@ -10,9 +10,9 @@
   },
   "sidebar": {
     "general": "General",
-    "models": "Models",
+    "models": "Engines",
     "advanced": "Advanced",
-    "postProcessing": "Post Process",
+    "postProcessing": "AI Rewrite",
     "history": "History",
     "debug": "Debug",
     "about": "About"
@@ -121,6 +121,7 @@
   },
   "modelSelector": {
     "custom": "Custom",
+    "local": "Local",
     "active": "Active",
     "switching": "Switching...",
     "noModelsAvailable": "No models available",
@@ -359,7 +360,18 @@
       }
     },
     "postProcessing": {
-      "title": "Post Process",
+      "title": "AI Rewrite",
+      "pageDescription": "An optional layer on top of transcription. Off, Tokezly is a plain transcriber. On, it polishes what you said — fully on-device by default.",
+      "master": {
+        "title": "AI rewrite",
+        "description": "The whole feature, on or off. When off, dictation is pasted verbatim — just speech-to-text."
+      },
+      "fullyLocal": {
+        "title": "Fully Local",
+        "description": "Rewrites run on-device by default — audio and text never leave this machine unless you opt into a cloud provider.",
+        "badge": "Default"
+      },
+      "providerGroup": "Provider",
       "hotkey": {
         "title": "Hotkey"
       },

@@ -80,22 +80,22 @@ const ModelCard: React.FC<ModelCardProps> = ({
   const displayDescription = getTranslatedModelDescription(model, t);
 
   const baseClasses =
-    "flex flex-col rounded-xl px-4 py-3 gap-2 text-left transition-all duration-200";
+    "flex flex-col rounded-xl px-4 py-3 gap-2 text-left border transition-all duration-200";
 
   const getVariantClasses = () => {
     if (status === "active") {
-      return "border-2 border-logo-primary/50 bg-logo-primary/10";
+      return "border-accent/40 bg-accent/[0.07]";
     }
     if (isFeatured) {
-      return "border-2 border-logo-primary/25 bg-logo-primary/5";
+      return "border-accent/25 bg-accent/5";
     }
-    return "border-2 border-mid-gray/20";
+    return "border-line bg-surface-2/60";
   };
 
   const getInteractiveClasses = () => {
     if (!isClickable) return "";
     if (disabled) return "opacity-50 cursor-not-allowed";
-    return "cursor-pointer hover:border-logo-primary/50 hover:bg-logo-primary/5 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] group";
+    return "cursor-pointer hover:border-accent/40 hover:bg-surface-3/70 active:scale-[0.99] group";
   };
 
   const handleClick = () => {
@@ -132,9 +132,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
       {/* Top section: name/description + score bars */}
       <div className="flex justify-between items-center w-full">
         <div className="flex flex-col items-start flex-1 min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <h3
-              className={`text-base font-semibold text-text ${isClickable ? "group-hover:text-logo-primary" : ""} transition-colors`}
+              className={`text-base font-semibold text-text ${isClickable ? "group-hover:text-accent" : ""} transition-colors`}
             >
               {displayName}
             </h3>
@@ -147,6 +147,9 @@ const ModelCard: React.FC<ModelCardProps> = ({
                 {t("modelSelector.active")}
               </Badge>
             )}
+            {!model.is_custom && (
+              <Badge variant="local">{t("modelSelector.local")}</Badge>
+            )}
             {model.is_custom && (
               <Badge variant="secondary">{t("modelSelector.custom")}</Badge>
             )}
@@ -157,31 +160,31 @@ const ModelCard: React.FC<ModelCardProps> = ({
               </Badge>
             )}
           </div>
-          <p className="text-text/60 text-sm leading-relaxed">
+          <p className="text-text-2 text-sm leading-relaxed">
             {displayDescription}
           </p>
         </div>
         {(model.accuracy_score > 0 || model.speed_score > 0) && (
           <div className="hidden sm:flex items-center ms-4">
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <div className="flex items-center gap-2">
-                <p className="text-xs text-text/60 w-24 text-end">
+                <p className="text-[10px] uppercase tracking-wide text-text-3 w-20 text-end">
                   {t("onboarding.modelCard.accuracy")}
                 </p>
-                <div className="w-16 h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+                <div className="w-16 h-[3px] bg-text/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-logo-primary rounded-full"
+                    className="h-full bg-accent rounded-full"
                     style={{ width: `${model.accuracy_score * 100}%` }}
                   />
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-xs text-text/60 w-24 text-end">
+                <p className="text-[10px] uppercase tracking-wide text-text-3 w-20 text-end">
                   {t("onboarding.modelCard.speed")}
                 </p>
-                <div className="w-16 h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+                <div className="w-16 h-[3px] bg-text/10 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-logo-primary rounded-full"
+                    className="h-full bg-accent rounded-full"
                     style={{ width: `${model.speed_score * 100}%` }}
                   />
                 </div>
@@ -191,13 +194,13 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
       </div>
 
-      <hr className="w-full border-mid-gray/20" />
+      <hr className="w-full border-line" />
 
       {/* Bottom row: tags + action buttons (full width) */}
       <div className="flex items-center gap-3 w-full -mb-0.5 mt-0.5 h-5">
         {model.supported_languages.length > 0 && (
           <div
-            className="flex items-center gap-1 text-xs text-text/50"
+            className="flex items-center gap-1 text-[11px] text-text-3"
             title={
               model.supported_languages.length === 1
                 ? t("modelSelector.capabilities.singleLanguage")
@@ -210,7 +213,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
         )}
         {model.supports_translation && (
           <div
-            className="flex items-center gap-1 text-xs text-text/50"
+            className="flex items-center gap-1 text-[11px] text-text-3"
             title={t("modelSelector.capabilities.translation")}
           >
             <Languages className="w-3.5 h-3.5" />
@@ -218,7 +221,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
           </div>
         )}
         {status === "downloadable" && (
-          <span className="flex items-center gap-1.5 ms-auto text-xs text-text/50">
+          <span className="flex items-center gap-1.5 ms-auto text-[11px] text-text-3">
             <Download className="w-3.5 h-3.5" />
             <span>{formatModelSize(Number(model.size_mb))}</span>
           </span>
@@ -229,7 +232,7 @@ const ModelCard: React.FC<ModelCardProps> = ({
             size="sm"
             onClick={handleDelete}
             title={t("modelSelector.deleteModel", { modelName: displayName })}
-            className="flex items-center gap-1.5 ms-auto text-logo-primary/85 hover:text-logo-primary hover:bg-logo-primary/10"
+            className="flex items-center gap-1.5 ms-auto text-accent/85 hover:text-accent hover:bg-accent/10"
           >
             <Trash2 className="w-3.5 h-3.5" />
             <span>{t("common.delete")}</span>
@@ -240,21 +243,21 @@ const ModelCard: React.FC<ModelCardProps> = ({
       {/* Download/extract progress */}
       {status === "downloading" && downloadProgress !== undefined && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
+          <div className="w-full h-1.5 bg-text/10 rounded-full overflow-hidden">
             <div
-              className="h-full bg-logo-primary rounded-full transition-all duration-300"
+              className="h-full bg-accent rounded-full transition-all duration-300"
               style={{ width: `${downloadProgress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-xs mt-1">
-            <span className="text-text/50">
+            <span className="text-text-3">
               {t("modelSelector.downloading", {
                 percentage: Math.round(downloadProgress),
               })}
             </span>
             <div className="flex items-center gap-2">
               {downloadSpeed !== undefined && downloadSpeed > 0 && (
-                <span className="tabular-nums text-text/50">
+                <span className="tabular-nums text-text-3">
                   {t("modelSelector.downloadSpeed", {
                     speed: downloadSpeed.toFixed(1),
                   })}
@@ -280,20 +283,20 @@ const ModelCard: React.FC<ModelCardProps> = ({
       )}
       {status === "verifying" && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
-            <div className="h-full bg-logo-primary rounded-full animate-pulse w-full" />
+          <div className="w-full h-1.5 bg-text/10 rounded-full overflow-hidden">
+            <div className="h-full bg-accent rounded-full animate-pulse w-full" />
           </div>
-          <p className="text-xs text-text/50 mt-1">
+          <p className="text-xs text-text-3 mt-1">
             {t("modelSelector.verifyingGeneric")}
           </p>
         </div>
       )}
       {status === "extracting" && (
         <div className="w-full mt-3">
-          <div className="w-full h-1.5 bg-mid-gray/20 rounded-full overflow-hidden">
-            <div className="h-full bg-logo-primary rounded-full animate-pulse w-full" />
+          <div className="w-full h-1.5 bg-text/10 rounded-full overflow-hidden">
+            <div className="h-full bg-accent rounded-full animate-pulse w-full" />
           </div>
-          <p className="text-xs text-text/50 mt-1">
+          <p className="text-xs text-text-3 mt-1">
             {t("modelSelector.extractingGeneric")}
           </p>
         </div>

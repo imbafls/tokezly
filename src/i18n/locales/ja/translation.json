@@ -148,7 +148,8 @@
       "languageOnly": "{{language}}のみ"
     },
     "cancel": "キャンセル",
-    "cancelDownload": "ダウンロードをキャンセル"
+    "cancelDownload": "ダウンロードをキャンセル",
+    "local": "Local"
   },
   "settings": {
     "modelSettings": {
@@ -416,7 +417,18 @@
         "cancel": "キャンセル",
         "selectToEdit": "上からプロンプトを選択して、詳細を表示・編集します。",
         "createFirst": "上の「新しいプロンプトを作成」をクリックして、最初の後処理プロンプトを作成してください。"
-      }
+      },
+      "pageDescription": "An optional layer on top of transcription. Off, Tokezly is a plain transcriber. On, it polishes what you said — fully on-device by default.",
+      "master": {
+        "title": "AI rewrite",
+        "description": "The whole feature, on or off. When off, dictation is pasted verbatim — just speech-to-text."
+      },
+      "fullyLocal": {
+        "title": "Fully Local",
+        "description": "Rewrites run on-device by default — audio and text never leave this machine unless you opt into a cloud provider.",
+        "badge": "Default"
+      },
+      "providerGroup": "Provider"
     },
     "history": {
       "title": "履歴",

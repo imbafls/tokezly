@@ -148,7 +148,8 @@
       "languageOnly": "{{language}} בלבד",
       "translation": "יכול לתרגם לאנגלית",
       "translate": "תרגם לאנגלית"
-    }
+    },
+    "local": "Local"
   },
   "settings": {
     "modelSettings": {
@@ -416,7 +417,18 @@
         "cancel": "ביטול",
         "selectToEdit": "בחר פרומפט למעלה כדי לצפות בפרטים שלו ולערוך אותם.",
         "createFirst": "לחץ על 'צור פרומפט חדש' למעלה כדי ליצור את פרומפט העיבוד הראשון שלך."
-      }
+      },
+      "pageDescription": "An optional layer on top of transcription. Off, Tokezly is a plain transcriber. On, it polishes what you said — fully on-device by default.",
+      "master": {
+        "title": "AI rewrite",
+        "description": "The whole feature, on or off. When off, dictation is pasted verbatim — just speech-to-text."
+      },
+      "fullyLocal": {
+        "title": "Fully Local",
+        "description": "Rewrites run on-device by default — audio and text never leave this machine unless you opt into a cloud provider.",
+        "badge": "Default"
+      },
+      "providerGroup": "Provider"
     },
     "history": {
       "title": "היסטוריה",

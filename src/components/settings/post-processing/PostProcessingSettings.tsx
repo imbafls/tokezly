@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { RefreshCcw } from "lucide-react";
+import { RefreshCcw, ShieldCheck, Sparkles } from "lucide-react";
 import { commands } from "@/bindings";
 
 import { Alert } from "../../ui/Alert";
@@ -344,8 +344,8 @@ const PostProcessingSettingsPromptsComponent: React.FC = () => {
         )}
 
         {!isCreating && !selectedPrompt && (
-          <div className="p-3 bg-mid-gray/5 rounded-md border border-mid-gray/20">
-            <p className="text-sm text-mid-gray">
+          <div className="p-3 bg-surface-2/60 rounded-md border border-line">
+            <p className="text-sm text-text-3">
               {hasPrompts
                 ? t("settings.postProcessing.prompts.selectToEdit")
                 : t("settings.postProcessing.prompts.createFirst")}
@@ -423,11 +423,85 @@ export const PostProcessingSettingsPrompts = React.memo(
 );
 PostProcessingSettingsPrompts.displayName = "PostProcessingSettingsPrompts";
 
+// Master on/off card for the whole AI Rewrite feature, bound to the existing
+// `post_process_enabled` setting. Styled as the design's prominent ".ai-master"
+// banner rather than a plain settings row.
+const AiRewriteMasterToggle: React.FC = () => {
+  const { t } = useTranslation();
+  const { getSetting, updateSetting, isUpdating } = useSettings();
+  const enabled = getSetting("post_process_enabled") || false;
+  const updating = isUpdating("post_process_enabled");
+
+  return (
+    <div className="flex items-center gap-4 px-4 py-3.5 rounded-xl border border-accent/40 bg-accent/[0.07]">
+      <span className="shrink-0 text-accent">
+        <Sparkles className="w-5 h-5" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-text">
+          {t("settings.postProcessing.master.title")}
+        </p>
+        <p className="text-xs text-text-3 mt-0.5 leading-relaxed">
+          {t("settings.postProcessing.master.description")}
+        </p>
+      </div>
+      <label
+        className={`relative inline-flex items-center ${updating ? "cursor-not-allowed" : "cursor-pointer"}`}
+      >
+        <input
+          type="checkbox"
+          className="sr-only peer"
+          checked={enabled}
+          disabled={updating}
+          onChange={(e) => updateSetting("post_process_enabled", e.target.checked)}
+        />
+        <div className="relative w-11 h-6 bg-surface-3 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent peer-disabled:opacity-50" />
+      </label>
+    </div>
+  );
+};
+
+// "Fully Local" reassurance banner. The default AI Rewrite provider is the
+// local Ollama endpoint (localhost:11434), cloud is opt-in.
+const FullyLocalBanner: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="flex items-center gap-3.5 px-4 py-3 rounded-xl border border-green-500/30 bg-green-500/[0.08]">
+      <span className="shrink-0 text-green-400">
+        <ShieldCheck className="w-5 h-5" />
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-green-400">
+          {t("settings.postProcessing.fullyLocal.title")}
+        </p>
+        <p className="text-xs text-text-2 mt-0.5 leading-relaxed">
+          {t("settings.postProcessing.fullyLocal.description")}
+        </p>
+      </div>
+      <span className="shrink-0 rounded-full border border-green-500/35 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-green-400">
+        {t("settings.postProcessing.fullyLocal.badge")}
+      </span>
+    </div>
+  );
+};
+
 export const PostProcessingSettings: React.FC = () => {
   const { t } = useTranslation();
 
   return (
     <div className="max-w-3xl w-full mx-auto space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold tracking-tight">
+          {t("settings.postProcessing.title")}
+        </h1>
+        <p className="text-sm text-text-3 mt-1 leading-relaxed">
+          {t("settings.postProcessing.pageDescription")}
+        </p>
+      </div>
+
+      <AiRewriteMasterToggle />
+      <FullyLocalBanner />
+
       <SettingsGroup title={t("settings.postProcessing.hotkey.title")}>
         <ShortcutInput
           shortcutId="transcribe_with_post_process"
