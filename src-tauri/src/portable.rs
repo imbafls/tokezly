@@ -2,11 +2,11 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 use tauri::Manager;
 
-/// Portable mode support for Handy.
-///
-/// When a file named `portable` exists next to the executable, all user data
-/// (settings, models, recordings, database, logs) is stored in a `Data/`
-/// directory alongside the executable instead of `%APPDATA%`.
+// Portable mode support for Handy.
+//
+// When a file named `portable` exists next to the executable, all user data
+// (settings, models, recordings, database, logs) is stored in a `Data/`
+// directory alongside the executable instead of `%APPDATA%`.
 
 static PORTABLE_DATA_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
 
@@ -159,7 +159,7 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let marker = dir.join("portable");
         let mut f = std::fs::File::create(&marker).unwrap();
-        write!(f, "  Tokezly Portable Mode\n").unwrap();
+        writeln!(f, "  Tokezly Portable Mode").unwrap();
         assert!(is_valid_portable_marker(&marker));
         std::fs::remove_dir_all(dir).unwrap();
     }
