@@ -92,6 +92,15 @@ impl RewriteMode {
     fn rewrites(self) -> bool {
         matches!(self, RewriteMode::Clean | RewriteMode::Prompt)
     }
+
+    /// Short tag describing the rewrite for the paste toast sub-line.
+    fn toast_tag(self) -> &'static str {
+        match self {
+            RewriteMode::Off => "verbatim",
+            RewriteMode::Clean => "cleaned",
+            RewriteMode::Prompt => "prompt",
+        }
+    }
 }
 
 /// Resolve a rewrite mode for a re-processed history entry.
@@ -757,19 +766,27 @@ impl ShortcutAction for TranscribeAction {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
+                                let toast_tag = mode.toast_tag();
                                 ah.run_on_main_thread(move || {
                                     match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
+                                        Ok(()) => {
+                                            debug!(
+                                                "Text pasted successfully in {:?}",
+                                                paste_time.elapsed()
+                                            );
+                                            // Surface the "Pasted to cursor" toast, then
+                                            // hide. The helper owns the brief delay so the
+                                            // toast is readable before the overlay fades out.
+                                            change_tray_icon(&ah_clone, TrayIconState::Idle);
+                                            utils::show_paste_toast(&ah_clone, toast_tag);
+                                        }
                                         Err(e) => {
                                             error!("Failed to paste transcription: {}", e);
                                             let _ = ah_clone.emit("paste-error", ());
+                                            utils::hide_recording_overlay(&ah_clone);
+                                            change_tray_icon(&ah_clone, TrayIconState::Idle);
                                         }
                                     }
-                                    utils::hide_recording_overlay(&ah_clone);
-                                    change_tray_icon(&ah_clone, TrayIconState::Idle);
                                 })
                                 .unwrap_or_else(|e| {
                                     error!("Failed to run paste on main thread: {:?}", e);

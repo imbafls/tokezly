@@ -6,7 +6,14 @@ import { commands } from "@/bindings";
 import i18n, { syncLanguageFromSettings } from "@/i18n";
 import { getLanguageDirection } from "@/lib/utils/rtl";
 
-type OverlayState = "recording" | "transcribing" | "processing";
+type OverlayState = "recording" | "transcribing" | "processing" | "toast";
+
+/// Rewrite mode carried by the `paste-complete` event; selects the toast sub-line.
+type PasteMode = "verbatim" | "cleaned" | "prompt";
+
+interface PasteCompletePayload {
+  mode: PasteMode;
+}
 
 const NUM_BARS = 16;
 
@@ -58,12 +65,25 @@ const XIcon: React.FC = () => (
   </svg>
 );
 
+const CheckIcon: React.FC = () => (
+  <svg viewBox="0 0 24 24" fill="none">
+    <path
+      d="M5 12.5 10 17.5 19 7"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [state, setState] = useState<OverlayState>("recording");
   const [levels, setLevels] = useState<number[]>(Array(NUM_BARS).fill(0));
   const [elapsed, setElapsed] = useState(0);
+  const [pasteMode, setPasteMode] = useState<PasteMode>("cleaned");
   const smoothedLevelsRef = useRef<number[]>(Array(NUM_BARS).fill(0));
   const direction = getLanguageDirection(i18n.language);
 
@@ -77,6 +97,14 @@ const RecordingOverlay: React.FC = () => {
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
       });
+      const unlistenPaste = await listen<PasteCompletePayload>(
+        "paste-complete",
+        (event) => {
+          setPasteMode(event.payload.mode);
+          setState("toast");
+          setIsVisible(true);
+        },
+      );
       const unlistenLevel = await listen<number[]>("mic-level", (event) => {
         const incoming = event.payload as number[];
         const smoothed = smoothedLevelsRef.current.map((prev, i) => {
@@ -89,6 +117,7 @@ const RecordingOverlay: React.FC = () => {
       return () => {
         unlistenShow();
         unlistenHide();
+        unlistenPaste();
         unlistenLevel();
       };
     };
@@ -108,6 +137,18 @@ const RecordingOverlay: React.FC = () => {
   }, [isVisible, state]);
 
   const renderSurface = () => {
+    if (state === "toast") {
+      return (
+        <div className="toast">
+          <span className="checkwrap">
+            <CheckIcon />
+          </span>
+          <span className="toast-t">{t("overlay.pasted")}</span>
+          <span className="toast-sub">{t(`overlay.pasteMode.${pasteMode}`)}</span>
+        </div>
+      );
+    }
+
     if (state === "recording") {
       return (
         <div className="cap">
@@ -150,7 +191,7 @@ const RecordingOverlay: React.FC = () => {
           </span>
           <span className="pop-eng">
             <span className="dot" />
-            {isRefine ? "Gemma 3 4B" : "Parakeet V3"}
+            {isRefine ? "Gemma 2 2B" : "Parakeet V3"}
           </span>
         </div>
       </div>

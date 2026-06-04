@@ -34,6 +34,13 @@ tauri_panel! {
 const OVERLAY_WIDTH: f64 = 360.0;
 const OVERLAY_HEIGHT: f64 = 120.0;
 
+/// Payload for the `paste-complete` overlay event. `mode` is one of
+/// "verbatim", "cleaned", or "prompt" and selects the toast's sub-line.
+#[derive(Clone, serde::Serialize)]
+struct PasteCompletePayload {
+    mode: String,
+}
+
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -366,6 +373,42 @@ pub fn update_overlay_position(app_handle: &AppHandle) {
             let _ = overlay_window
                 .set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
         }
+    }
+}
+
+/// Shows the "Pasted to cursor" toast in the overlay, then hides it.
+///
+/// `mode` describes the rewrite that produced the pasted text — "verbatim",
+/// "cleaned", or "prompt" — and drives the toast's sub-line. The overlay window
+/// is kept visible for a brief window (~1.3s) so the toast can be read before
+/// the existing fade-out/hide flow runs. Non-focus-stealing: the window is only
+/// re-asserted topmost, never activated.
+pub fn show_paste_toast(app_handle: &AppHandle, mode: &str) {
+    let settings = settings::get_settings(app_handle);
+    if settings.overlay_position == OverlayPosition::None {
+        // Overlay is disabled — nothing to show, drop straight to the hide flow
+        // so the window doesn't linger if it was briefly shown elsewhere.
+        hide_recording_overlay(app_handle);
+        return;
+    }
+
+    if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        let _ = overlay_window.show();
+
+        // On Windows, re-assert topmost after showing without stealing focus.
+        #[cfg(target_os = "windows")]
+        force_overlay_topmost(&overlay_window);
+
+        let _ = overlay_window.emit("paste-complete", PasteCompletePayload { mode: mode.into() });
+
+        // Keep the toast on screen briefly, then run the normal hide flow.
+        let app_clone = app_handle.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(1300));
+            hide_recording_overlay(&app_clone);
+        });
+    } else {
+        hide_recording_overlay(app_handle);
     }
 }
 
