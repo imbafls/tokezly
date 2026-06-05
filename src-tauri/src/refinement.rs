@@ -25,7 +25,8 @@ use llama_cpp_2::sampling::LlamaSampler;
 use log::{debug, info, warn};
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use once_cell::sync::OnceCell;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 /// Filename of the default on-device model on disk (lives in the app-data
@@ -250,10 +251,14 @@ impl OnDeviceModel {
 pub struct OnDeviceEngine {
     /// Directory holding GGUF weights (app-data `models/`).
     models_dir: PathBuf,
-    /// Shared llama backend (initialized once, lazily).
-    backend: OnceLock<Arc<LlamaBackend>>,
-    /// The loaded model, behind a mutex so concurrent dictations serialize on
-    /// inference rather than loading the model twice.
+    /// Shared llama backend (initialized exactly once, lazily). `OnceCell` so the
+    /// fallible `LlamaBackend::init()` runs under real synchronization — a plain
+    /// get-then-set would let a second concurrent caller hit
+    /// `init()`'s global "already initialized" error and spuriously fail.
+    backend: OnceCell<Arc<LlamaBackend>>,
+    /// The loaded model. The mutex serializes the one-time cold load so two
+    /// concurrent first-refines can't both map the ~1.6 GB GGUF; inference itself
+    /// runs lock-free on a cloned `Arc`, so dictations still refine concurrently.
     model: Mutex<Option<Arc<OnDeviceModel>>>,
 }
 
@@ -262,7 +267,7 @@ impl OnDeviceEngine {
     pub fn new(models_dir: PathBuf) -> Self {
         Self {
             models_dir,
-            backend: OnceLock::new(),
+            backend: OnceCell::new(),
             model: Mutex::new(None),
         }
     }
@@ -277,28 +282,30 @@ impl OnDeviceEngine {
         self.default_model_path().is_file()
     }
 
-    /// Lazily get-or-init the shared llama backend.
+    /// Lazily get-or-init the shared llama backend. `get_or_try_init` runs the
+    /// fallible `init()` under the cell's lock, so exactly one thread initializes
+    /// the backend and the rest wait for and share its result — no thread ever
+    /// sees `init()`'s "already initialized" error.
     fn backend(&self) -> Result<Arc<LlamaBackend>, String> {
-        if let Some(b) = self.backend.get() {
-            return Ok(b.clone());
-        }
-        // init() is safe to call once; OnceLock guards against racing inits.
-        let backend = LlamaBackend::init()
-            .map_err(|e| format!("Failed to initialize llama backend: {}", e))?;
-        let backend = Arc::new(backend);
-        // If another thread won the race, keep theirs.
-        let _ = self.backend.set(backend.clone());
-        Ok(self.backend.get().cloned().unwrap_or(backend))
+        self.backend
+            .get_or_try_init(|| {
+                LlamaBackend::init()
+                    .map(Arc::new)
+                    .map_err(|e| format!("Failed to initialize llama backend: {}", e))
+            })
+            .cloned()
     }
 
     /// Get the loaded model, loading it on first use. Returns `Ok(None)` if the
     /// weights are not on disk yet (caller falls back to verbatim).
     fn get_or_load_model(&self) -> Result<Option<Arc<OnDeviceModel>>, String> {
-        {
-            let guard = self.model.lock().unwrap();
-            if let Some(m) = guard.as_ref() {
-                return Ok(Some(m.clone()));
-            }
+        // Hold the lock across the cold load so only one thread ever loads the
+        // model; concurrent first-refines wait here and then share the result.
+        // Inference runs later on a cloned `Arc`, off the lock, so it stays
+        // concurrent.
+        let mut guard = self.model.lock().unwrap();
+        if let Some(m) = guard.as_ref() {
+            return Ok(Some(m.clone()));
         }
 
         let path = self.default_model_path();
@@ -313,12 +320,6 @@ impl OnDeviceEngine {
         let backend = self.backend()?;
         info!("Lazily loading on-device refinement model from {:?}", path);
         let model = Arc::new(OnDeviceModel::load(backend, &path)?);
-
-        let mut guard = self.model.lock().unwrap();
-        // Double-check: another thread may have loaded while we did.
-        if let Some(existing) = guard.as_ref() {
-            return Ok(Some(existing.clone()));
-        }
         *guard = Some(model.clone());
         Ok(Some(model))
     }
