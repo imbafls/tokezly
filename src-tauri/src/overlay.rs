@@ -34,11 +34,21 @@ tauri_panel! {
 const OVERLAY_WIDTH: f64 = 360.0;
 const OVERLAY_HEIGHT: f64 = 120.0;
 
-/// Payload for the `paste-complete` overlay event. `mode` is one of
-/// "verbatim", "cleaned", or "prompt" and selects the toast's sub-line.
+/// Bumped every time the overlay is shown in a new state. A delayed hide
+/// captures the value at request time and skips the actual `window.hide()` if a
+/// newer show has happened since — so an auto-dismiss (or any) hide can never
+/// hide a freshly-started recording during its 300ms fade window.
+static OVERLAY_GENERATION: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Payload for the `paste-complete` overlay event, which drives the result card.
+/// `mode` is one of "verbatim", "cleaned", or "prompt" (the rewrite applied),
+/// `text` is the full pasted transcript shown in the card, and `engine` is the
+/// friendly engine label (e.g. "On-device") — empty for verbatim.
 #[derive(Clone, serde::Serialize)]
 struct PasteCompletePayload {
     mode: String,
+    text: String,
+    engine: String,
 }
 
 #[cfg(target_os = "macos")]
@@ -141,6 +151,31 @@ fn force_overlay_topmost(overlay_window: &tauri::webview::WebviewWindow) {
                     0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE | SWP_SHOWWINDOW,
                 );
+            }
+        }
+    });
+}
+
+/// Marks the overlay window as non-activating (WS_EX_NOACTIVATE) on Windows.
+///
+/// Without this, clicking a control in the overlay (the result card's Copy /
+/// Retry / ✕, or the capsule's cancel) activates the window and steals keyboard
+/// focus from the user's target app. That breaks Retry in particular: its
+/// re-paste sends Ctrl+V via enigo to whatever holds focus, which would be the
+/// overlay instead of the app. NOACTIVATE keeps the window able to receive
+/// clicks while never becoming foreground, so focus stays on the target app.
+#[cfg(target_os = "windows")]
+fn set_overlay_no_activate(overlay_window: &tauri::webview::WebviewWindow) {
+    use windows::Win32::UI::WindowsAndMessaging::{
+        GetWindowLongPtrW, SetWindowLongPtrW, GWL_EXSTYLE, WS_EX_NOACTIVATE,
+    };
+
+    let overlay_clone = overlay_window.clone();
+    let _ = overlay_window.run_on_main_thread(move || {
+        if let Ok(hwnd) = overlay_clone.hwnd() {
+            unsafe {
+                let ex = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+                SetWindowLongPtrW(hwnd, GWL_EXSTYLE, ex | (WS_EX_NOACTIVATE.0 as isize));
             }
         }
     });
@@ -271,6 +306,10 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     #[allow(unused_variables)]
     match builder.build() {
         Ok(window) => {
+            // Keep the overlay from stealing focus when its controls are clicked.
+            #[cfg(target_os = "windows")]
+            set_overlay_no_activate(&window);
+
             #[cfg(target_os = "linux")]
             {
                 // Try to initialize GTK layer shell, ignore errors if compositor doesn't support it
@@ -336,6 +375,8 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
     update_overlay_position(app_handle);
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        // A new show invalidates any pending delayed hide (see hide flow).
+        OVERLAY_GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let _ = overlay_window.show();
 
         // On Windows, aggressively re-assert "topmost" in the native Z-order after showing
@@ -376,14 +417,16 @@ pub fn update_overlay_position(app_handle: &AppHandle) {
     }
 }
 
-/// Shows the "Pasted to cursor" toast in the overlay, then hides it.
+/// Shows the result card in the overlay after a paste completes.
 ///
-/// `mode` describes the rewrite that produced the pasted text — "verbatim",
-/// "cleaned", or "prompt" — and drives the toast's sub-line. The overlay window
-/// is kept visible for a brief window (~1.3s) so the toast can be read before
-/// the existing fade-out/hide flow runs. Non-focus-stealing: the window is only
-/// re-asserted topmost, never activated.
-pub fn show_paste_toast(app_handle: &AppHandle, mode: &str) {
+/// `mode` describes the rewrite ("verbatim" / "cleaned" / "prompt"), `text` is
+/// the full pasted transcript shown in the card, and `engine` is the engine
+/// label. Unlike the old auto-dismissing toast, the card stays on screen until
+/// the user dismisses it (✕ / Copy / Retry) or the frontend's idle timer calls
+/// `dismiss_overlay`; starting a new recording replaces it. The backend does NOT
+/// schedule a hide here, which also avoids a stale timer hiding a fresh
+/// recording. Non-focus-stealing: the window is only re-asserted topmost.
+pub fn show_paste_card(app_handle: &AppHandle, mode: &str, text: &str, engine: &str) {
     let settings = settings::get_settings(app_handle);
     if settings.overlay_position == OverlayPosition::None {
         // Overlay is disabled — nothing to show, drop straight to the hide flow
@@ -393,20 +436,22 @@ pub fn show_paste_toast(app_handle: &AppHandle, mode: &str) {
     }
 
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
+        // A new show invalidates any pending delayed hide (see hide flow).
+        OVERLAY_GENERATION.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let _ = overlay_window.show();
 
         // On Windows, re-assert topmost after showing without stealing focus.
         #[cfg(target_os = "windows")]
         force_overlay_topmost(&overlay_window);
 
-        let _ = overlay_window.emit("paste-complete", PasteCompletePayload { mode: mode.into() });
-
-        // Keep the toast on screen briefly, then run the normal hide flow.
-        let app_clone = app_handle.clone();
-        std::thread::spawn(move || {
-            std::thread::sleep(std::time::Duration::from_millis(1300));
-            hide_recording_overlay(&app_clone);
-        });
+        let _ = overlay_window.emit(
+            "paste-complete",
+            PasteCompletePayload {
+                mode: mode.into(),
+                text: text.into(),
+                engine: engine.into(),
+            },
+        );
     } else {
         hide_recording_overlay(app_handle);
     }
@@ -419,11 +464,16 @@ pub fn hide_recording_overlay(app_handle: &AppHandle) {
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Emit event to trigger fade-out animation
         let _ = overlay_window.emit("hide-overlay", ());
-        // Hide the window after a short delay to allow animation to complete
+        // Hide the window after a short delay to allow animation to complete.
+        // Capture the current generation so that if a newer show() runs during
+        // the fade, we skip this hide and leave the fresh overlay on screen.
         let window_clone = overlay_window.clone();
+        let generation = OVERLAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst);
         std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
-            let _ = window_clone.hide();
+            if OVERLAY_GENERATION.load(std::sync::atomic::Ordering::SeqCst) == generation {
+                let _ = window_clone.hide();
+            }
         });
     }
 }

@@ -220,28 +220,34 @@
   color: var(--acc);
 }
 
-/* ---------------- Paste toast ---------------- */
-.toast {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  height: 46px;
-  padding: 0 16px;
-  border-radius: 999px;
+/* ---------------- Result card (after paste) ---------------- */
+.card {
+  box-sizing: border-box;
+  width: 336px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-radius: 12px;
   font-family: var(--sans);
-  font-size: 13.5px;
   color: var(--tx);
-  background: rgba(19, 27, 25, 0.72);
+  background: rgba(19, 27, 25, 0.8);
   backdrop-filter: blur(50px) saturate(1.35);
   -webkit-backdrop-filter: blur(50px) saturate(1.35);
   border: 1px solid rgba(255, 255, 255, 0.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 12px 28px rgba(0, 0, 0, 0.36);
+    0 16px 36px rgba(0, 0, 0, 0.4),
+    0 2px 10px rgba(0, 0, 0, 0.32);
 }
-.toast .checkwrap {
-  width: 20px;
-  height: 20px;
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card .checkwrap {
+  width: 18px;
+  height: 18px;
   border-radius: 99px;
   background: var(--ok);
   color: #000;
@@ -249,15 +255,80 @@
   place-items: center;
   flex: none;
 }
-.toast .checkwrap svg {
+.card .checkwrap svg {
+  width: 12px;
+  height: 12px;
+}
+.card-mode {
+  font-size: 12.5px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.card-eng {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--tx-3);
+}
+.card-x {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  margin-left: 6px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  color: var(--tx-3);
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  flex: none;
+}
+.card-x:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--tx);
+}
+.card-x svg {
   width: 13px;
   height: 13px;
 }
-.toast .toast-t {
-  font-weight: 600;
+.card-text {
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--tx-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
-.toast .toast-sub {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--tx-3);
+.card-actions {
+  display: flex;
+  gap: 8px;
+}
+.card-btn {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--tx);
+  font-family: var(--sans);
+  font-size: 12px;
+  padding: 5px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.card-btn:hover:not(:disabled) {
+  background: var(--acc-dim);
+  border-color: rgba(47, 224, 166, 0.4);
+}
+.card-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
 }

@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Přepisuji...",
     "processing": "Zpracovávám...",
-    "pasted": "Vloženo ke kurzoru",
     "pasteMode": {
-      "verbatim": "· doslovně",
-      "cleaned": "· upraveno",
-      "prompt": "· zpráva commitu"
-    }
+      "verbatim": "doslovně",
+      "cleaned": "upraveno",
+      "prompt": "zpráva commitu"
+    },
+    "copy": "Kopírovat",
+    "copied": "Zkopírováno",
+    "retry": "Zkusit znovu",
+    "dismiss": "Zavřít"
   }
 }

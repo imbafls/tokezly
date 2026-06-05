@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Transkrypcja...",
     "processing": "Przetwarzanie...",
-    "pasted": "Wklejono w miejscu kursora",
     "pasteMode": {
-      "verbatim": "· dosłownie",
-      "cleaned": "· oczyszczone",
-      "prompt": "· komunikat commita"
-    }
+      "verbatim": "dosłownie",
+      "cleaned": "oczyszczone",
+      "prompt": "komunikat commita"
+    },
+    "copy": "Kopiuj",
+    "copied": "Skopiowano",
+    "retry": "Ponów",
+    "dismiss": "Zamknij"
   }
 }

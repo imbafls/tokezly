@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "מתמלל...",
     "processing": "מעבד...",
-    "pasted": "הודבק במיקום הסמן",
     "pasteMode": {
-      "verbatim": "· מילה במילה",
-      "cleaned": "· מנוקה",
-      "prompt": "· הודעת קומיט"
-    }
+      "verbatim": "מילה במילה",
+      "cleaned": "מנוקה",
+      "prompt": "הודעת קומיט"
+    },
+    "copy": "העתק",
+    "copied": "הועתק",
+    "retry": "נסה שוב",
+    "dismiss": "סגור"
   }
 }

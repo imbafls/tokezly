@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "文字起こし中...",
     "processing": "処理中...",
-    "pasted": "カーソル位置に貼り付けました",
     "pasteMode": {
-      "verbatim": "· そのまま",
-      "cleaned": "· 整形済み",
-      "prompt": "· コミットメッセージ"
-    }
+      "verbatim": "そのまま",
+      "cleaned": "整形済み",
+      "prompt": "コミットメッセージ"
+    },
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "retry": "再試行",
+    "dismiss": "閉じる"
   }
 }

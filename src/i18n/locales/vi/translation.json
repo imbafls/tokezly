@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Đang chuyển đổi...",
     "processing": "Đang xử lý...",
-    "pasted": "Đã dán tại con trỏ",
     "pasteMode": {
-      "verbatim": "· nguyên văn",
-      "cleaned": "· đã tinh chỉnh",
-      "prompt": "· thông điệp commit"
-    }
+      "verbatim": "nguyên văn",
+      "cleaned": "đã tinh chỉnh",
+      "prompt": "thông điệp commit"
+    },
+    "copy": "Sao chép",
+    "copied": "Đã sao chép",
+    "retry": "Thử lại",
+    "dismiss": "Đóng"
   }
 }

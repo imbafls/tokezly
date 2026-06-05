@@ -166,6 +166,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
 
+    // Holds the most recent dictation so the result card's Retry can re-run it.
+    app_handle.manage(actions::LastDictation::default());
+
     // In-process on-device refinement engine. Bound to the app-data models dir
     // but NOT loaded here — the GGUF is lazy-loaded on first use (see
     // `refinement::OnDeviceEngine`), so this does not block boot or allocate the
@@ -441,6 +444,8 @@ pub fn run(cli_args: CliArgs) {
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
             helpers::clamshell::is_laptop,
+            actions::retry_last_dictation,
+            actions::dismiss_overlay,
         ])
         .events(collect_events![managers::history::HistoryUpdatePayload,]);
 

@@ -20,7 +20,7 @@ use ferrous_opencc::{config::BuiltinConfig, OpenCC};
 use log::{debug, error, warn};
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tauri::Manager;
 use tauri::{AppHandle, Emitter};
@@ -94,7 +94,7 @@ impl RewriteMode {
     }
 
     /// Short tag describing the rewrite for the paste toast sub-line.
-    fn toast_tag(self) -> &'static str {
+    pub(crate) fn toast_tag(self) -> &'static str {
         match self {
             RewriteMode::Off => "verbatim",
             RewriteMode::Clean => "cleaned",
@@ -500,6 +500,91 @@ pub(crate) struct ProcessedTranscription {
     pub post_process_prompt: Option<String>,
 }
 
+/// The raw transcription + mode of the most recent completed dictation, kept so
+/// the result card's "Retry" can re-run the rewrite and paste a fresh result
+/// without re-recording. Managed as Tauri state; see `retry_last_dictation`.
+#[derive(Default)]
+pub struct LastDictation(pub Mutex<Option<LastDictationData>>);
+
+pub struct LastDictationData {
+    pub transcription: String,
+    pub mode: RewriteMode,
+}
+
+/// Friendly label for the engine that produced the rewrite, shown on the result
+/// card (e.g. "On-device", "OpenAI"). Empty for verbatim, where no rewrite ran.
+pub(crate) fn rewrite_engine_label(app: &AppHandle, mode: RewriteMode) -> String {
+    if !mode.rewrites() {
+        return String::new();
+    }
+    let settings = get_settings(app);
+    match settings.active_post_process_provider() {
+        Some(provider) if provider.id == ON_DEVICE_PROVIDER_ID => "On-device".to_string(),
+        Some(provider) => provider.label.clone(),
+        None => String::new(),
+    }
+}
+
+/// Hide the result card / overlay. Backs the card's ✕ button and its idle
+/// auto-dismiss timer.
+#[tauri::command]
+#[specta::specta]
+pub fn dismiss_overlay(app: AppHandle) {
+    utils::hide_recording_overlay(&app);
+}
+
+/// Re-run the most recent dictation's rewrite and paste the fresh result at the
+/// cursor, refreshing the result card. For a verbatim dictation (no rewrite)
+/// this simply pastes the same text again. Returns an error if there is no
+/// recent dictation to retry.
+#[tauri::command]
+#[specta::specta]
+pub async fn retry_last_dictation(app: AppHandle) -> Result<(), String> {
+    let last = app.try_state::<LastDictation>().and_then(|state| {
+        state
+            .0
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|d| (d.transcription.clone(), d.mode))
+    });
+    let Some((transcription, mode)) = last else {
+        return Err("No recent dictation to retry".to_string());
+    };
+
+    if mode.rewrites() {
+        show_processing_overlay(&app);
+    }
+
+    let processed = process_transcription_output(&app, &transcription, mode).await;
+    let final_text = processed.final_text;
+    if final_text.is_empty() {
+        utils::hide_recording_overlay(&app);
+        change_tray_icon(&app, TrayIconState::Idle);
+        return Ok(());
+    }
+
+    let engine = rewrite_engine_label(&app, mode);
+    let toast_tag = mode.toast_tag();
+    let app_clone = app.clone();
+    let text_for_card = final_text.clone();
+    app.run_on_main_thread(move || {
+        match utils::paste(final_text, app_clone.clone()) {
+            Ok(()) => {
+                change_tray_icon(&app_clone, TrayIconState::Idle);
+                utils::show_paste_card(&app_clone, toast_tag, &text_for_card, &engine);
+            }
+            Err(e) => {
+                error!("Retry paste failed: {}", e);
+                utils::hide_recording_overlay(&app_clone);
+            }
+        }
+    })
+    .map_err(|e| format!("Failed to run retry paste on main thread: {:?}", e))?;
+
+    Ok(())
+}
+
 pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
@@ -740,6 +825,15 @@ impl ShortcutAction for TranscribeAction {
                                 transcription
                             );
 
+                            // Remember this dictation so the result card's
+                            // Retry can re-run its rewrite without re-recording.
+                            if let Some(state) = ah.try_state::<LastDictation>() {
+                                *state.0.lock().unwrap() = Some(LastDictationData {
+                                    transcription: transcription.clone(),
+                                    mode,
+                                });
+                            }
+
                             if post_process {
                                 show_processing_overlay(&ah);
                             }
@@ -767,6 +861,8 @@ impl ShortcutAction for TranscribeAction {
                                 let paste_time = Instant::now();
                                 let final_text = processed.final_text;
                                 let toast_tag = mode.toast_tag();
+                                let engine = rewrite_engine_label(&ah, mode);
+                                let text_for_card = final_text.clone();
                                 ah.run_on_main_thread(move || {
                                     match utils::paste(final_text, ah_clone.clone()) {
                                         Ok(()) => {
@@ -774,11 +870,17 @@ impl ShortcutAction for TranscribeAction {
                                                 "Text pasted successfully in {:?}",
                                                 paste_time.elapsed()
                                             );
-                                            // Surface the "Pasted to cursor" toast, then
-                                            // hide. The helper owns the brief delay so the
-                                            // toast is readable before the overlay fades out.
+                                            // Show the result card (transcript +
+                                            // Copy/Retry/Dismiss). It stays until the
+                                            // user dismisses it or the frontend's idle
+                                            // timer fires; a new recording replaces it.
                                             change_tray_icon(&ah_clone, TrayIconState::Idle);
-                                            utils::show_paste_toast(&ah_clone, toast_tag);
+                                            utils::show_paste_card(
+                                                &ah_clone,
+                                                toast_tag,
+                                                &text_for_card,
+                                                &engine,
+                                            );
                                         }
                                         Err(e) => {
                                             error!("Failed to paste transcription: {}", e);

@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Transkriberar...",
     "processing": "Bearbetar...",
-    "pasted": "Inklistrat vid markören",
     "pasteMode": {
-      "verbatim": "· ordagrant",
-      "cleaned": "· rensat",
-      "prompt": "· commit-meddelande"
-    }
+      "verbatim": "ordagrant",
+      "cleaned": "rensat",
+      "prompt": "commit-meddelande"
+    },
+    "copy": "Kopiera",
+    "copied": "Kopierat",
+    "retry": "Försök igen",
+    "dismiss": "Stäng"
   }
 }

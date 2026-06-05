@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "正在转录...",
     "processing": "处理中...",
-    "pasted": "已粘贴到光标处",
     "pasteMode": {
-      "verbatim": "· 逐字",
-      "cleaned": "· 已清理",
-      "prompt": "· 提交信息"
-    }
+      "verbatim": "逐字",
+      "cleaned": "已清理",
+      "prompt": "提交信息"
+    },
+    "copy": "复制",
+    "copied": "已复制",
+    "retry": "重试",
+    "dismiss": "关闭"
   }
 }

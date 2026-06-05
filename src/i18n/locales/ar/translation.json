@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "...جاري التفريغ",
     "processing": "...جاري المعالجة",
-    "pasted": "تم اللصق عند المؤشر",
     "pasteMode": {
-      "verbatim": "· حرفيًا",
-      "cleaned": "· مُنقّح",
-      "prompt": "· رسالة الالتزام"
-    }
+      "verbatim": "حرفيًا",
+      "cleaned": "مُنقّح",
+      "prompt": "رسالة الالتزام"
+    },
+    "copy": "نسخ",
+    "copied": "تم النسخ",
+    "retry": "إعادة المحاولة",
+    "dismiss": "إغلاق"
   }
 }

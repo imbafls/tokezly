@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Transkribe ediliyor...",
     "processing": "İşleniyor...",
-    "pasted": "İmlece yapıştırıldı",
     "pasteMode": {
-      "verbatim": "· birebir",
-      "cleaned": "· düzeltilmiş",
-      "prompt": "· commit mesajı"
-    }
+      "verbatim": "birebir",
+      "cleaned": "düzeltilmiş",
+      "prompt": "commit mesajı"
+    },
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "retry": "Yeniden dene",
+    "dismiss": "Kapat"
   }
 }

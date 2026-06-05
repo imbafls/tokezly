@@ -1,4 +1,5 @@
 import { listen } from "@tauri-apps/api/event";
+import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
@@ -8,12 +9,22 @@ import { getLanguageDirection } from "@/lib/utils/rtl";
 
 type OverlayState = "recording" | "transcribing" | "processing" | "toast";
 
-/// Rewrite mode carried by the `paste-complete` event; selects the toast sub-line.
+/// Rewrite mode carried by the `paste-complete` event; labels the result card.
 type PasteMode = "verbatim" | "cleaned" | "prompt";
 
 interface PasteCompletePayload {
   mode: PasteMode;
+  text: string;
+  engine: string;
 }
+
+/// How long the result card stays before auto-dismissing, reset on each
+/// interaction (Copy/Retry). The ✕ dismisses immediately; a new recording
+/// replaces it. Kept short since the card sits over the cursor area.
+const CARD_AUTODISMISS_MS = 6000;
+
+/// How long the Copy button shows its "Copied" confirmation before reverting.
+const COPIED_REVERT_MS = 1500;
 
 const NUM_BARS = 16;
 
@@ -84,6 +95,12 @@ const RecordingOverlay: React.FC = () => {
   const [levels, setLevels] = useState<number[]>(Array(NUM_BARS).fill(0));
   const [elapsed, setElapsed] = useState(0);
   const [pasteMode, setPasteMode] = useState<PasteMode>("cleaned");
+  const [pasteText, setPasteText] = useState("");
+  const [pasteEngine, setPasteEngine] = useState("");
+  const [copied, setCopied] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  // Bumped on each card interaction to restart the auto-dismiss timer.
+  const [interactions, setInteractions] = useState(0);
   const smoothedLevelsRef = useRef<number[]>(Array(NUM_BARS).fill(0));
   const direction = getLanguageDirection(i18n.language);
 
@@ -101,6 +118,11 @@ const RecordingOverlay: React.FC = () => {
         "paste-complete",
         (event) => {
           setPasteMode(event.payload.mode);
+          setPasteText(event.payload.text);
+          setPasteEngine(event.payload.engine);
+          setCopied(false);
+          setIsRetrying(false);
+          setInteractions((n) => n + 1);
           setState("toast");
           setIsVisible(true);
         },
@@ -136,15 +158,85 @@ const RecordingOverlay: React.FC = () => {
     }
   }, [isVisible, state]);
 
+  // The result card auto-dismisses after a quiet interval. The timer restarts
+  // on every interaction (`interactions`) and is cleared if the state changes
+  // (e.g. a new recording starts), so a stale timer never hides a fresh capsule.
+  useEffect(() => {
+    if (isVisible && state === "toast") {
+      const id = setTimeout(() => {
+        void commands.dismissOverlay();
+      }, CARD_AUTODISMISS_MS);
+      return () => clearTimeout(id);
+    }
+  }, [isVisible, state, interactions]);
+
+  const handleCopy = async () => {
+    setInteractions((n) => n + 1);
+    try {
+      await writeText(pasteText);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), COPIED_REVERT_MS);
+    } catch {
+      // Clipboard write can fail (e.g. locked clipboard); leave the label as-is.
+    }
+  };
+
+  const handleRetry = () => {
+    if (isRetrying) return; // guard against a double-Retry → duplicate paste
+    setCopied(false);
+    setIsRetrying(true);
+    setInteractions((n) => n + 1);
+    // The fresh result re-emits paste-complete, which clears isRetrying; the
+    // .finally guards the error path (no paste-complete) so the button recovers.
+    void commands.retryLastDictation().finally(() => setIsRetrying(false));
+  };
+
+  const handleDismiss = () => {
+    void commands.dismissOverlay();
+  };
+
   const renderSurface = () => {
     if (state === "toast") {
       return (
-        <div className="toast">
-          <span className="checkwrap">
-            <CheckIcon />
-          </span>
-          <span className="toast-t">{t("overlay.pasted")}</span>
-          <span className="toast-sub">{t(`overlay.pasteMode.${pasteMode}`)}</span>
+        <div className="card">
+          <div className="card-head">
+            <span className="checkwrap">
+              <CheckIcon />
+            </span>
+            <span className="card-mode">
+              {t(`overlay.pasteMode.${pasteMode}`)}
+            </span>
+            {pasteEngine && <span className="card-eng">{pasteEngine}</span>}
+            <button
+              type="button"
+              className="card-x"
+              title={t("overlay.dismiss")}
+              onClick={handleDismiss}
+            >
+              <XIcon />
+            </button>
+          </div>
+          <div className="card-text" title={pasteText}>
+            {pasteText}
+          </div>
+          <div className="card-actions">
+            <button
+              type="button"
+              className="card-btn"
+              onClick={handleCopy}
+              disabled={isRetrying}
+            >
+              {copied ? t("overlay.copied") : t("overlay.copy")}
+            </button>
+            <button
+              type="button"
+              className="card-btn"
+              onClick={handleRetry}
+              disabled={isRetrying}
+            >
+              {t("overlay.retry")}
+            </button>
+          </div>
         </div>
       );
     }

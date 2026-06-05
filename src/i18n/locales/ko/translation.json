@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "텍스트로 변환 중...",
     "processing": "처리 중...",
-    "pasted": "커서 위치에 붙여넣음",
     "pasteMode": {
-      "verbatim": "· 그대로",
-      "cleaned": "· 정리됨",
-      "prompt": "· 커밋 메시지"
-    }
+      "verbatim": "그대로",
+      "cleaned": "정리됨",
+      "prompt": "커밋 메시지"
+    },
+    "copy": "복사",
+    "copied": "복사됨",
+    "retry": "다시 시도",
+    "dismiss": "닫기"
   }
 }

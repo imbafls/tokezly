@@ -629,11 +629,14 @@
   "overlay": {
     "transcribing": "Transcribing...",
     "processing": "Processing...",
-    "pasted": "Pasted to cursor",
     "pasteMode": {
-      "verbatim": "· verbatim",
-      "cleaned": "· cleaned",
-      "prompt": "· commit message"
-    }
+      "verbatim": "Verbatim",
+      "cleaned": "Cleaned",
+      "prompt": "Commit message"
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "retry": "Retry",
+    "dismiss": "Dismiss"
   }
 }
