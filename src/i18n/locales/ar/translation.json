@@ -403,7 +403,8 @@
       "pageDescription": "An optional layer on top of transcription. Off, Tokezly is a plain transcriber. On, it polishes what you said — fully on-device by default.",
       "master": {
         "title": "AI rewrite",
-        "description": "The whole feature, on or off. When off, dictation is pasted verbatim — just speech-to-text."
+        "description": "The whole feature, on or off. When off, dictation is pasted verbatim — just speech-to-text.",
+        "offNote": "Rewrite is off — dictation pastes verbatim."
       },
       "fullyLocal": {
         "title": "Fully Local",
@@ -426,6 +427,36 @@
         "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
         "ready": "Ready",
         "notFound": "Not found"
+      },
+      "section": {
+        "baseline": "Baseline — Auto-clean",
+        "library": "Library — Prompts",
+        "engine": "Engine — where rewriting runs"
+      },
+      "baseline": {
+        "description": "Fillers and repeats removed, self-corrections applied, grammar, caps and punctuation fixed. Always on while AI rewrite is on.",
+        "viewEdit": "View / edit what it does",
+        "placeholder": "Write the cleanup instruction. Use ${output} where the transcript goes.",
+        "resetToDefault": "Reset to default",
+        "runsOn": "Runs on",
+        "changeInGeneral": "(change in General →)"
+      },
+      "library": {
+        "description": "Hold the prompt hotkey and your armed prompt runs on what you just said. The armed prompt is sticky — switch it here.",
+        "armed": "Armed",
+        "noPromptArmed": "No prompt armed",
+        "hotkeyLabel": "Prompt hotkey",
+        "managePrompts": "Manage prompts ({{count}})",
+        "noPrompts": "No prompts yet. Create your first one below.",
+        "builtinBadge": "built-in",
+        "armedBadge": "armed",
+        "setAsArmed": "Set as armed",
+        "deletePrompt": "Delete prompt",
+        "createNew": "New prompt"
+      },
+      "engine": {
+        "needsApiKey": "This provider needs an API key to rewrite text. Until you add one, dictation pastes verbatim.",
+        "advanced": "Advanced (model / base URL)"
       }
     },
     "history": {
