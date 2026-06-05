@@ -597,9 +597,12 @@ fn run_claude_cli(
     // can't exec directly — route those through cmd.exe. A native `claude.exe`
     // (the installer's default, and what's on this machine) is spawned directly.
     #[cfg(target_os = "windows")]
-    let is_cmd_shim = binary
+    // Anything that is not a native `.exe` (a `.cmd`/`.bat` shim, or an
+    // extensionless shim) can't be exec'd directly by CreateProcess — route it
+    // through `cmd /C`.
+    let is_cmd_shim = !binary
         .extension()
-        .map(|e| e.eq_ignore_ascii_case("cmd"))
+        .map(|e| e.eq_ignore_ascii_case("exe"))
         .unwrap_or(false);
     #[cfg(target_os = "windows")]
     let mut cmd = if is_cmd_shim {
@@ -613,7 +616,6 @@ fn run_claude_cli(
     let mut cmd = Command::new(binary);
 
     cmd.arg("-p")
-        .arg(transcript)
         .arg("--output-format")
         .arg("json")
         .arg("--system-prompt")
@@ -633,6 +635,10 @@ fn run_claude_cli(
     if !model.is_empty() {
         cmd.arg("--model").arg(model);
     }
+    // The transcript is raw ASR output and fully user-influenceable, so pass it
+    // last, after an end-of-options `--` terminator. A dictation that begins with
+    // a hyphen (e.g. "--version") is then treated as prompt text, never a flag.
+    cmd.arg("--").arg(transcript);
 
     cmd.current_dir(std::env::temp_dir())
         .env_remove("ANTHROPIC_API_KEY")
@@ -706,10 +712,7 @@ fn run_claude_cli(
         .and_then(|v| v.as_bool())
         .unwrap_or(false)
     {
-        warn!(
-            "`claude` returned an error result: {}",
-            parsed.get("result").and_then(|v| v.as_str()).unwrap_or("unknown")
-        );
+        warn!("`claude` returned an error result; falling back to verbatim");
         return None;
     }
 
@@ -1100,9 +1103,9 @@ impl ShortcutAction for TranscribeAction {
                     match transcription_result {
                         Ok(transcription) => {
                             debug!(
-                                "Transcription completed in {:?}: '{}'",
+                                "Transcription completed in {:?} ({} chars)",
                                 transcription_time.elapsed(),
-                                transcription
+                                transcription.len()
                             );
 
                             // Remember this dictation so the result card's
