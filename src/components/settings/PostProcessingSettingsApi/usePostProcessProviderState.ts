@@ -33,6 +33,11 @@ const APPLE_PROVIDER_ID = "apple_intelligence";
 // Local providers run on-device or via the user's installed Claude Code — they
 // take no API key or base URL, so those fields are hidden for them.
 const LOCAL_PROVIDER_IDS = ["on_device", "claude_code"];
+const CLAUDE_CODE_PROVIDER_ID = "claude_code";
+// Claude Code exposes no remote model list, so offer the standard CLI tier
+// aliases. The `claude` CLI resolves each to the latest model of that tier;
+// Haiku leads since it's the fastest and a good fit for the short rewrite task.
+const CLAUDE_CODE_MODELS = ["haiku", "sonnet", "opus"];
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
@@ -187,6 +192,12 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
       options.push({ value: trimmed, label: trimmed });
     };
 
+    // Claude Code has no remote model list — seed the standard tier aliases
+    // (Haiku first: fastest, ideal for the short cleanup rewrite).
+    if (selectedProviderId === CLAUDE_CODE_PROVIDER_ID) {
+      for (const m of CLAUDE_CODE_MODELS) upsert(m);
+    }
+
     // Add available models from API
     for (const candidate of availableModelsRaw) {
       upsert(candidate);
@@ -196,7 +207,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     upsert(model);
 
     return options;
-  }, [availableModelsRaw, model]);
+  }, [availableModelsRaw, model, selectedProviderId]);
 
   const isBaseUrlUpdating = isUpdating(
     `post_process_base_url:${selectedProviderId}`,
