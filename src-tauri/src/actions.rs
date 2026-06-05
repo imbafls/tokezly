@@ -794,6 +794,17 @@ pub(crate) fn rewrite_engine_label(app: &AppHandle, mode: RewriteMode) -> String
     }
 }
 
+/// Friendly label for the active speech-to-text model, shown in the transcribing
+/// popup (e.g. "Parakeet V3"). Falls back to the raw model id, then to an empty
+/// string if no model manager / model is resolvable.
+fn asr_engine_label(app: &AppHandle) -> String {
+    let settings = get_settings(app);
+    app.try_state::<std::sync::Arc<crate::managers::model::ModelManager>>()
+        .and_then(|mm| mm.get_model_info(&settings.selected_model))
+        .map(|info| info.name)
+        .unwrap_or(settings.selected_model)
+}
+
 /// Hide the result card / overlay. Backs the card's ✕ button and its idle
 /// auto-dismiss timer.
 #[tauri::command]
@@ -822,7 +833,7 @@ pub async fn retry_last_dictation(app: AppHandle) -> Result<(), String> {
     };
 
     if mode.rewrites() {
-        show_processing_overlay(&app);
+        show_processing_overlay(&app, &rewrite_engine_label(&app, mode));
     }
 
     let processed = process_transcription_output(&app, &transcription, mode).await;
@@ -1009,7 +1020,7 @@ impl ShortcutAction for TranscribeAction {
         let hm = Arc::clone(&app.state::<Arc<HistoryManager>>());
 
         change_tray_icon(app, TrayIconState::Transcribing);
-        show_transcribing_overlay(app);
+        show_transcribing_overlay(app, &asr_engine_label(app));
 
         // Unmute before playing audio feedback so the stop sound is audible
         rm.remove_mute();
@@ -1104,7 +1115,7 @@ impl ShortcutAction for TranscribeAction {
                             }
 
                             if post_process {
-                                show_processing_overlay(&ah);
+                                show_processing_overlay(&ah, &rewrite_engine_label(&ah, mode));
                             }
                             let processed =
                                 process_transcription_output(&ah, &transcription, mode).await;

@@ -51,6 +51,16 @@ struct PasteCompletePayload {
     engine: String,
 }
 
+/// Payload for the `show-overlay` event. `state` is "recording", "transcribing",
+/// or "processing"; `engine` is the friendly engine label shown in the popup —
+/// the speech-to-text model while transcribing, the rewrite engine while
+/// processing — and is empty for the recording capsule.
+#[derive(Clone, serde::Serialize)]
+struct ShowOverlayPayload {
+    state: String,
+    engine: String,
+}
+
 #[cfg(target_os = "macos")]
 const OVERLAY_TOP_OFFSET: f64 = 46.0;
 #[cfg(any(target_os = "windows", target_os = "linux"))]
@@ -365,7 +375,7 @@ pub fn create_recording_overlay(app_handle: &AppHandle) {
     }
 }
 
-fn show_overlay_state(app_handle: &AppHandle, state: &str) {
+fn show_overlay_state(app_handle: &AppHandle, state: &str, engine: &str) {
     // Check if overlay should be shown based on position setting
     let settings = settings::get_settings(app_handle);
     if settings.overlay_position == OverlayPosition::None {
@@ -383,23 +393,29 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
         #[cfg(target_os = "windows")]
         force_overlay_topmost(&overlay_window);
 
-        let _ = overlay_window.emit("show-overlay", state);
+        let _ = overlay_window.emit(
+            "show-overlay",
+            ShowOverlayPayload {
+                state: state.into(),
+                engine: engine.into(),
+            },
+        );
     }
 }
 
 /// Shows the recording overlay window with fade-in animation
 pub fn show_recording_overlay(app_handle: &AppHandle) {
-    show_overlay_state(app_handle, "recording");
+    show_overlay_state(app_handle, "recording", "");
 }
 
-/// Shows the transcribing overlay window
-pub fn show_transcribing_overlay(app_handle: &AppHandle) {
-    show_overlay_state(app_handle, "transcribing");
+/// Shows the transcribing overlay window, labelled with the speech-to-text engine.
+pub fn show_transcribing_overlay(app_handle: &AppHandle, engine: &str) {
+    show_overlay_state(app_handle, "transcribing", engine);
 }
 
-/// Shows the processing overlay window
-pub fn show_processing_overlay(app_handle: &AppHandle) {
-    show_overlay_state(app_handle, "processing");
+/// Shows the processing overlay window, labelled with the rewrite engine.
+pub fn show_processing_overlay(app_handle: &AppHandle, engine: &str) {
+    show_overlay_state(app_handle, "processing", engine);
 }
 
 /// Updates the overlay window position based on current settings

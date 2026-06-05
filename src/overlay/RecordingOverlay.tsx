@@ -94,6 +94,9 @@ const RecordingOverlay: React.FC = () => {
   const [state, setState] = useState<OverlayState>("recording");
   const [levels, setLevels] = useState<number[]>(Array(NUM_BARS).fill(0));
   const [elapsed, setElapsed] = useState(0);
+  // Live latency timer + engine label for the transcribing/processing popup.
+  const [procElapsed, setProcElapsed] = useState(0);
+  const [popupEngine, setPopupEngine] = useState("");
   const [pasteMode, setPasteMode] = useState<PasteMode>("cleaned");
   const [pasteText, setPasteText] = useState("");
   const [pasteEngine, setPasteEngine] = useState("");
@@ -106,11 +109,15 @@ const RecordingOverlay: React.FC = () => {
 
   useEffect(() => {
     const setup = async () => {
-      const unlistenShow = await listen("show-overlay", async (event) => {
-        await syncLanguageFromSettings();
-        setState(event.payload as OverlayState);
-        setIsVisible(true);
-      });
+      const unlistenShow = await listen<{ state: OverlayState; engine: string }>(
+        "show-overlay",
+        async (event) => {
+          await syncLanguageFromSettings();
+          setState(event.payload.state);
+          setPopupEngine(event.payload.engine ?? "");
+          setIsVisible(true);
+        },
+      );
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
       });
@@ -152,6 +159,19 @@ const RecordingOverlay: React.FC = () => {
       setElapsed(0);
       const id = setInterval(
         () => setElapsed((e) => Math.round((e + 0.1) * 10) / 10),
+        100,
+      );
+      return () => clearInterval(id);
+    }
+  }, [isVisible, state]);
+
+  // Live latency timer for the transcribing / processing popup — ticks up while
+  // the engine works, mirroring the design's latency readout. Resets per phase.
+  useEffect(() => {
+    if (isVisible && (state === "transcribing" || state === "processing")) {
+      setProcElapsed(0);
+      const id = setInterval(
+        () => setProcElapsed((e) => Math.round((e + 0.1) * 10) / 10),
         100,
       );
       return () => clearInterval(id);
@@ -281,10 +301,13 @@ const RecordingOverlay: React.FC = () => {
             {isRefine && <SparkleIcon />}
             {isRefine ? t("overlay.processing") : t("overlay.transcribing")}
           </span>
-          <span className="pop-eng">
-            <span className="dot" />
-            {isRefine ? "Gemma 2 2B" : "Parakeet V3"}
-          </span>
+          {popupEngine && (
+            <span className="pop-eng">
+              <span className="dot" />
+              {popupEngine}
+            </span>
+          )}
+          <span className="pop-lat">{`${procElapsed.toFixed(1)}s`}</span>
         </div>
       </div>
     );
