@@ -441,7 +441,17 @@
         "download": "Загрузить модель на устройство (~1,6 ГБ)",
         "downloading": "Загрузка… {{percent}}%",
         "ready": "Модель готова",
-        "error": "Не удалось загрузить. Проверьте подключение и повторите попытку."
+        "error": "Не удалось загрузить. Проверьте подключение и повторите попытку.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

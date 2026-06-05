@@ -419,7 +419,17 @@
         "download": "تنزيل النموذج على الجهاز (~1.6 جيجابايت)",
         "downloading": "جارٍ التنزيل… {{percent}}%",
         "ready": "النموذج جاهز",
-        "error": "فشل التنزيل. تحقّق من اتصالك وحاول مرة أخرى."
+        "error": "فشل التنزيل. تحقّق من اتصالك وحاول مرة أخرى.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

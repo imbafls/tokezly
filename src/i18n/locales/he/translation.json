@@ -441,7 +441,17 @@
         "download": "הורדת המודל למכשיר (~1.6 ג׳יגה-בייט)",
         "downloading": "מוריד… {{percent}}%",
         "ready": "המודל מוכן",
-        "error": "ההורדה נכשלה. בדוק את החיבור ונסה שוב."
+        "error": "ההורדה נכשלה. בדוק את החיבור ונסה שוב.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

@@ -441,7 +441,17 @@
         "download": "オンデバイスモデルをダウンロード（約1.6 GB）",
         "downloading": "ダウンロード中… {{percent}}%",
         "ready": "モデルの準備完了",
-        "error": "ダウンロードに失敗しました。接続を確認して再試行してください。"
+        "error": "ダウンロードに失敗しました。接続を確認して再試行してください。",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

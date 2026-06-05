@@ -441,7 +441,17 @@
         "download": "Изтегляне на модела за устройството (~1,6 GB)",
         "downloading": "Изтегляне… {{percent}}%",
         "ready": "Моделът е готов",
-        "error": "Изтеглянето е неуспешно. Проверете връзката си и опитайте отново."
+        "error": "Изтеглянето е неуспешно. Проверете връзката си и опитайте отново.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

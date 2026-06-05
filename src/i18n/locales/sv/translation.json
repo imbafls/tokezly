@@ -441,7 +441,17 @@
         "download": "Ladda ner modell på enheten (~1,6 GB)",
         "downloading": "Laddar ner… {{percent}} %",
         "ready": "Modellen är redo",
-        "error": "Nedladdningen misslyckades. Kontrollera din anslutning och försök igen."
+        "error": "Nedladdningen misslyckades. Kontrollera din anslutning och försök igen.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

@@ -441,7 +441,17 @@
         "download": "Tải mô hình trên thiết bị (~1,6 GB)",
         "downloading": "Đang tải xuống… {{percent}}%",
         "ready": "Mô hình đã sẵn sàng",
-        "error": "Tải xuống thất bại. Hãy kiểm tra kết nối và thử lại."
+        "error": "Tải xuống thất bại. Hãy kiểm tra kết nối và thử lại.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

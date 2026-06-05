@@ -441,7 +441,17 @@
         "download": "Télécharger le modèle sur l’appareil (~1,6 Go)",
         "downloading": "Téléchargement… {{percent}} %",
         "ready": "Modèle prêt",
-        "error": "Échec du téléchargement. Vérifiez votre connexion et réessayez."
+        "error": "Échec du téléchargement. Vérifiez votre connexion et réessayez.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

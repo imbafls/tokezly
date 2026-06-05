@@ -441,7 +441,17 @@
         "download": "Modell auf dem Gerät herunterladen (~1,6 GB)",
         "downloading": "Wird heruntergeladen… {{percent}} %",
         "ready": "Modell bereit",
-        "error": "Download fehlgeschlagen. Überprüfe deine Verbindung und versuche es erneut."
+        "error": "Download fehlgeschlagen. Überprüfe deine Verbindung und versuche es erneut.",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",

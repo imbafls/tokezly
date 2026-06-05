@@ -441,7 +441,17 @@
         "download": "下載裝置端模型（約 1.6 GB）",
         "downloading": "正在下載… {{percent}}%",
         "ready": "模型已就緒",
-        "error": "下載失敗。請檢查您的連線後再試一次。"
+        "error": "下載失敗。請檢查您的連線後再試一次。",
+        "pickerTitle": "On-device model",
+        "pickerDescription": "Pick a small model to run rewrites fully on your device.",
+        "active": "Active",
+        "tier": {
+          "tiny": "Tiny & fast",
+          "balanced": "Balanced",
+          "quality": "Best quality"
+        },
+        "select": "Select",
+        "downloadShort": "Download"
       },
       "claudeCode": {
         "title": "Claude Code",
