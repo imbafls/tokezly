@@ -1,0 +1,27 @@
+THIRD-PARTY RUST DEPENDENCY LICENSES
+====================================
+
+This file lists the licenses of the Rust crates compiled into the Tokezly
+application. It is generated with cargo-about from Cargo.lock; the verbatim
+license text for every crate follows the overview.
+
+OVERVIEW
+--------
+{{#each overview}}
+  {{{name}}} ({{count}})
+{{/each}}
+
+FULL LICENSE TEXTS
+==================
+{{#each licenses}}
+
+================================================================================
+{{{name}}}
+================================================================================
+Used by:
+{{#each used_by}}
+  - {{{crate.name}}} {{{crate.version}}}
+{{/each}}
+
+{{{text}}}
+{{/each}}
