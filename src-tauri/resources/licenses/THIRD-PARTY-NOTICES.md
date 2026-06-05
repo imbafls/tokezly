@@ -25,8 +25,18 @@ Apache-2.0, BSD, ISC, the SIL Open Font License, or a public-domain dedication).
 License identifiers below use SPDX where one exists. The complete,
 machine-readable list of every transitive dependency and its license is the
 `Cargo.lock` (Rust) and `package.json` / lockfile (JavaScript) in this
-repository. The full SIL Open Font License texts for the bundled fonts are
-included in this repository under `licenses/`.
+repository.
+
+The full verbatim license texts for the components that ship inside the Windows
+installer travel with the distributed artifact under `resources/licenses/` (and
+are mirrored in this repository under `licenses/`):
+
+- `SpaceGrotesk-OFL.txt`, `JetBrainsMono-OFL.txt` — the bundled fonts (SIL OFL 1.1)
+- `onnxruntime-LICENSE.txt` (MIT) and `onnxruntime-ThirdPartyNotices.txt` —
+  ONNX Runtime 1.24 and the third-party code it incorporates
+- `DirectML-LICENSE.txt` — the Microsoft DirectX Machine Learning (DirectML)
+  license terms for the bundled `DirectML.dll` (Microsoft.AI.DirectML 1.15.4)
+- `THIRD-PARTY-NOTICES.md` — this file
 
 ---
 
@@ -80,13 +90,17 @@ themselves licensed MIT OR Apache-2.0.
   inference backend (the DirectML execution provider on Windows) and to run the
   Silero voice-activity-detection model. ONNX Runtime is statically linked into
   the application binary; the Rust `ort` wrapper crate is MIT OR Apache-2.0.
+- **Version:** 1.24 (via the `ort` 2.0.0-rc.12 wrapper crate)
 - **License:** MIT
 - **Copyright:** Copyright (c) Microsoft Corporation
 - **Source:** https://github.com/microsoft/onnxruntime
+- **Bundled texts:** `resources/licenses/onnxruntime-LICENSE.txt` and
+  `resources/licenses/onnxruntime-ThirdPartyNotices.txt`
 
 ONNX Runtime itself incorporates further third-party code (for example abseil and
 protobuf) under its own `ThirdPartyNotices.txt`, which applies to those
-components.
+components and is reproduced verbatim in the bundled
+`onnxruntime-ThirdPartyNotices.txt`.
 
 ### Microsoft DirectML
 
@@ -95,15 +109,19 @@ components.
   (hardware-accelerated ASR inference on Windows). Unlike ONNX Runtime, DirectML
   ships as a **separate loose redistributable DLL** placed next to the
   application executable and packaged into the Windows installer.
+- **Version:** Microsoft.AI.DirectML 1.15.4 (the version ONNX Runtime 1.24 pins)
 - **License:** Proprietary — Microsoft Software License Terms for Microsoft
   DirectX Machine Learning (DirectML). This is **not** an open-source license.
 - **Copyright:** Copyright (c) Microsoft Corporation
 - **Source:** Distributed via the `Microsoft.AI.DirectML` NuGet package —
   https://www.nuget.org/packages/Microsoft.AI.DirectML
+- **Bundled text:** `resources/licenses/DirectML-LICENSE.txt` (verbatim, from the
+  1.15.4 package)
 
 The Microsoft DirectML license terms permit redistribution of `DirectML.dll`
-subject to those terms; the license text that accompanies the
-`Microsoft.AI.DirectML` package applies to the copy bundled in the installer.
+subject to those terms; the verbatim license text that accompanies the
+`Microsoft.AI.DirectML` package is reproduced in the bundled
+`DirectML-LICENSE.txt` and applies to the copy shipped in the installer.
 
 ### SQLite
 
