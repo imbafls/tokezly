@@ -1,1 +1,1 @@
-export { PostProcessingSettingsApi } from "../post-processing/PostProcessingSettings";
+export { EngineSection as PostProcessingSettingsApi } from "../post-processing/EngineSection";

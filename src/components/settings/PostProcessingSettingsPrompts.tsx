@@ -1,1 +1,1 @@
-export { PostProcessingSettingsPrompts } from "./post-processing/PostProcessingSettings";
+export { LibrarySection as PostProcessingSettingsPrompts } from "./post-processing/LibrarySection";

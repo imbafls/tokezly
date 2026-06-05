@@ -11,6 +11,7 @@ type PostProcessProviderState = {
   isCustomProvider: boolean;
   isAppleProvider: boolean;
   isLocalProvider: boolean;
+  isCloudProvider: boolean;
   appleIntelligenceUnavailable: boolean;
   baseUrl: string;
   handleBaseUrlChange: (value: string) => void;
@@ -48,13 +49,14 @@ const GEMINI_MODELS = [
   "gemini-2.5-flash-lite",
   "gemini-3.5-flash",
 ];
-// Providers that cost nothing to run (local, or a free tier) vs. the rest, which
-// need the user's own paid API key. Used to group the provider picker.
-const FREE_PROVIDER_IDS = [
+// Curated set surfaced first in the provider picker ("Featured"); everything
+// else falls under "More providers". The on-device engine leads as the default.
+const FEATURED_PROVIDER_IDS = [
   "on_device",
-  "apple_intelligence",
   "claude_code",
   "gemini",
+  "openai",
+  "custom",
 ];
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
@@ -96,9 +98,9 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     return providers.map((provider) => ({
       value: provider.id,
       label: provider.label,
-      group: FREE_PROVIDER_IDS.includes(provider.id)
-        ? "Free"
-        : "Your own API key",
+      group: FEATURED_PROVIDER_IDS.includes(provider.id)
+        ? "Featured"
+        : "More providers",
     }));
   }, [providers]);
 
@@ -248,6 +250,9 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
 
   const isCustomProvider = selectedProvider?.id === "custom";
   const isLocalProvider = LOCAL_PROVIDER_IDS.includes(selectedProvider?.id ?? "");
+  // Everything that sends text off the machine via an HTTP API: not Apple's
+  // on-device engine and not a local provider (on-device / Claude Code CLI).
+  const isCloudProvider = !isAppleProvider && !isLocalProvider;
 
   // No automatic fetching - user must click refresh button
 
@@ -258,6 +263,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     isCustomProvider,
     isAppleProvider,
     isLocalProvider,
+    isCloudProvider,
     appleIntelligenceUnavailable,
     baseUrl,
     handleBaseUrlChange,
