@@ -519,7 +519,10 @@ fn default_autostart_enabled() -> bool {
 }
 
 fn default_update_checks_enabled() -> bool {
-    true
+    // The in-app updater is dormant: releases are unsigned and no `latest.json`
+    // is published (`createUpdaterArtifacts` is false), so a check would only
+    // 404. New installs default to off and the UI affordances are hidden.
+    false
 }
 
 fn default_selected_language() -> String {
