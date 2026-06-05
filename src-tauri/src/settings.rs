@@ -15,9 +15,10 @@ pub const APPLE_INTELLIGENCE_DEFAULT_MODEL_ID: &str = "Apple Intelligence";
 /// (`refinement.rs`) instead of over HTTP. See `crate::refinement`.
 pub const ON_DEVICE_PROVIDER_ID: &str = "on_device";
 
-/// Default model id surfaced for the on-device provider. Matches the GGUF
-/// filename the engine loads from the app-data `models/` dir.
-pub const ON_DEVICE_DEFAULT_MODEL_ID: &str = "gemma-2-2b-it-Q4_K_M.gguf";
+/// Default model id surfaced for the on-device provider. This is the GGUF
+/// filename the engine loads from the app-data `models/` dir; it derives from
+/// the engine's own constant so the default lives in exactly one place.
+pub const ON_DEVICE_DEFAULT_MODEL_ID: &str = crate::refinement::DEFAULT_MODEL_FILENAME;
 
 /// Id of the provider that routes refinement through the user's locally-installed,
 /// already-signed-in Claude Code CLI (`claude -p`). It uses their Claude
