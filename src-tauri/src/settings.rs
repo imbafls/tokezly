@@ -150,6 +150,11 @@ pub struct LLMPrompt {
     pub id: String,
     pub name: String,
     pub prompt: String,
+    /// True for app-managed prompts (the Clean baseline + the curated library).
+    /// Builtins cannot be deleted; their text can be edited and reset. `#[serde(default)]`
+    /// means existing stored prompts (no `builtin` key) deserialize as `false`.
+    #[serde(default)]
+    pub builtin: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
@@ -744,7 +749,16 @@ fn default_model_for_provider(provider_id: &str) -> String {
     if provider_id == GEMINI_PROVIDER_ID {
         return GEMINI_DEFAULT_MODEL_ID.to_string();
     }
-    String::new()
+    match provider_id {
+        "openai" => "gpt-4o-mini".to_string(),                // VERIFY
+        "anthropic" => "claude-3-5-haiku-latest".to_string(), // VERIFY
+        "groq" => "llama-3.3-70b-versatile".to_string(),      // VERIFY
+        "cerebras" => "llama-3.3-70b".to_string(),            // VERIFY
+        "openrouter" => "openai/gpt-4o-mini".to_string(),     // VERIFY
+        "zai" => "glm-4-flash".to_string(),                   // VERIFY
+        // bedrock_mantle + custom stay empty.
+        _ => String::new(),
+    }
 }
 
 fn default_post_process_models() -> HashMap<String, String> {
@@ -758,12 +772,52 @@ fn default_post_process_models() -> HashMap<String, String> {
     map
 }
 
+/// The 5 curated library prompts seeded on every install. Each is `builtin: true`
+/// (frontend shows a badge + blocks deletion). Instructions end with ${output}.
+fn curated_library_prompts() -> Vec<LLMPrompt> {
+    vec![
+        LLMPrompt {
+            id: "builtin_bullets".to_string(),
+            name: "Bullet points".to_string(),
+            prompt: "Rewrite the text as concise bullet points, one idea per bullet. Keep the meaning. Return only the bullets. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_numbered".to_string(),
+            name: "Numbered list".to_string(),
+            prompt: "Rewrite the text as a numbered list, in order. Keep the meaning. Return only the list. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_email".to_string(),
+            name: "Email".to_string(),
+            prompt: "Rewrite the text as a clear, polite email. Keep the meaning; fix grammar and tone. Return only the email body. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_concise".to_string(),
+            name: "Concise".to_string(),
+            prompt: "Rewrite the text to be as concise as possible without losing meaning. Return only the rewritten text. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_summarize".to_string(),
+            name: "Summarize".to_string(),
+            prompt: "Summarize the text in a few sentences capturing the key points. Return only the summary. Text: ${output}".to_string(),
+            builtin: true,
+        },
+    ]
+}
+
 fn default_post_process_prompts() -> Vec<LLMPrompt> {
-    vec![LLMPrompt {
+    let mut prompts = vec![LLMPrompt {
         id: CLEAN_PROMPT_ID.to_string(),
         name: "Improve Transcriptions".to_string(),
         prompt: CLEAN_PROMPT_TEXT.to_string(),
-    }]
+        builtin: true,
+    }];
+    prompts.extend(curated_library_prompts());
+    prompts
 }
 
 fn default_whisper_gpu_device() -> i32 {
@@ -833,6 +887,30 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
                     .insert(provider.id.clone(), default_model);
                 changed = true;
             }
+        }
+    }
+
+    // Mark CLEAN_PROMPT_ID builtin on existing stores (serde default left it false).
+    if let Some(clean) = settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|p| p.id == CLEAN_PROMPT_ID)
+    {
+        if !clean.builtin {
+            clean.builtin = true;
+            changed = true;
+        }
+    }
+
+    // Seed curated builtins only if ABSENT — never clobber a user-edited builtin.
+    for curated in curated_library_prompts() {
+        if !settings
+            .post_process_prompts
+            .iter()
+            .any(|p| p.id == curated.id)
+        {
+            settings.post_process_prompts.push(curated);
+            changed = true;
         }
     }
 
@@ -1181,5 +1259,94 @@ mod tests {
         let out = format!("{:?}", map);
         assert!(!out.contains("secret"));
         assert!(out.contains("[REDACTED]"));
+    }
+
+    #[test]
+    fn ensure_defaults_seeds_curated_builtins_idempotently() {
+        let mut settings = get_default_settings();
+        settings.post_process_prompts = vec![LLMPrompt {
+            id: CLEAN_PROMPT_ID.to_string(),
+            name: "Improve Transcriptions".to_string(),
+            prompt: CLEAN_PROMPT_TEXT.to_string(),
+            builtin: false, // old store
+        }];
+        assert!(
+            ensure_post_process_defaults(&mut settings),
+            "first run changes"
+        );
+        for id in [
+            "builtin_bullets",
+            "builtin_numbered",
+            "builtin_email",
+            "builtin_concise",
+            "builtin_summarize",
+        ] {
+            assert!(
+                settings.post_process_prompts.iter().any(|p| p.id == id),
+                "missing {id}"
+            );
+        }
+        assert!(
+            settings
+                .post_process_prompts
+                .iter()
+                .find(|p| p.id == CLEAN_PROMPT_ID)
+                .unwrap()
+                .builtin
+        );
+        assert!(
+            !ensure_post_process_defaults(&mut settings),
+            "second run is a no-op"
+        );
+    }
+
+    #[test]
+    fn ensure_defaults_does_not_clobber_edited_builtin() {
+        let mut settings = get_default_settings();
+        if let Some(p) = settings
+            .post_process_prompts
+            .iter_mut()
+            .find(|p| p.id == "builtin_bullets")
+        {
+            p.prompt = "My custom bullet prompt ${output}".to_string();
+        }
+        ensure_post_process_defaults(&mut settings);
+        assert_eq!(
+            settings
+                .post_process_prompts
+                .iter()
+                .find(|p| p.id == "builtin_bullets")
+                .unwrap()
+                .prompt,
+            "My custom bullet prompt ${output}"
+        );
+    }
+
+    #[test]
+    fn ensure_defaults_backfills_empty_model_only() {
+        let mut settings = get_default_settings();
+        settings
+            .post_process_models
+            .insert("openai".to_string(), "gpt-4o".to_string());
+        settings
+            .post_process_models
+            .insert("groq".to_string(), String::new());
+        ensure_post_process_defaults(&mut settings);
+        assert_eq!(
+            settings.post_process_models.get("openai").map(String::as_str),
+            Some("gpt-4o")
+        );
+        assert_eq!(
+            settings.post_process_models.get("groq").map(String::as_str),
+            Some("llama-3.3-70b-versatile")
+        );
+    }
+
+    #[test]
+    fn ensure_defaults_does_not_reset_chosen_provider() {
+        let mut settings = get_default_settings();
+        settings.post_process_provider_id = "openai".to_string();
+        ensure_post_process_defaults(&mut settings);
+        assert_eq!(settings.post_process_provider_id, "openai");
     }
 }

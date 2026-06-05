@@ -922,6 +922,7 @@ pub fn add_post_process_prompt(
         id: id.clone(),
         name,
         prompt,
+        builtin: false,
     };
 
     settings.post_process_prompts.push(new_prompt.clone());
@@ -959,9 +960,12 @@ pub fn update_post_process_prompt(
 pub fn delete_post_process_prompt(app: AppHandle, id: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
 
-    // Don't allow deleting the last prompt
-    if settings.post_process_prompts.len() <= 1 {
-        return Err("Cannot delete the last prompt".to_string());
+    // App-managed prompts (the Clean baseline + the curated library) can be
+    // edited and reset but never deleted.
+    if let Some(target) = settings.post_process_prompts.iter().find(|p| p.id == id) {
+        if target.builtin {
+            return Err(format!("Cannot delete built-in prompt '{}'", target.name));
+        }
     }
 
     // Find and remove the prompt
@@ -972,10 +976,9 @@ pub fn delete_post_process_prompt(app: AppHandle, id: String) -> Result<(), Stri
         return Err(format!("Prompt with id '{}' not found", id));
     }
 
-    // If the deleted prompt was selected, select the first one or None
+    // If the deleted prompt was armed, clear the slot so the UI shows "no prompt armed".
     if settings.post_process_selected_prompt_id.as_ref() == Some(&id) {
-        settings.post_process_selected_prompt_id =
-            settings.post_process_prompts.first().map(|p| p.id.clone());
+        settings.post_process_selected_prompt_id = None;
     }
 
     settings::write_settings(&app, settings);
@@ -1040,6 +1043,30 @@ pub fn set_post_process_selected_prompt(app: AppHandle, id: String) -> Result<()
     settings.post_process_selected_prompt_id = Some(id);
     settings::write_settings(&app, settings);
     Ok(())
+}
+
+/// Reset the built-in Clean baseline prompt text to factory. Only touches the
+/// CLEAN_PROMPT_ID row's `prompt` (not its name — a user rename is theirs).
+#[tauri::command]
+#[specta::specta]
+pub fn reset_clean_prompt(app: AppHandle) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    match settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|p| p.id == settings::CLEAN_PROMPT_ID)
+    {
+        Some(prompt) => {
+            prompt.prompt = settings::CLEAN_PROMPT_TEXT.to_string();
+            prompt.builtin = true;
+            settings::write_settings(&app, settings);
+            Ok(())
+        }
+        None => Err(format!(
+            "Built-in prompt '{}' not found",
+            settings::CLEAN_PROMPT_ID
+        )),
+    }
 }
 
 #[tauri::command]
