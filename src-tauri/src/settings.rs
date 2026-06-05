@@ -34,8 +34,8 @@ pub const CLAUDE_CODE_DEFAULT_MODEL_ID: &str = "sonnet";
 /// Id of the optional "free cloud" refinement provider — Google Gemini via its
 /// OpenAI-compatible endpoint (so it reuses the `llm_client` HTTP path). Surfaced
 /// under a neutral label ("Free Cloud") with a privacy note in the settings UI;
-/// it is an explicit opt-in, never the default. The key is per-user, or baked
-/// from `TOKEZLY_GEMINI_API_KEY` at build time for a zero-setup default build.
+/// it is an explicit opt-in, never the default. The API key is entered per-user
+/// in Settings — cloud keys are never baked into the build.
 pub const GEMINI_PROVIDER_ID: &str = "gemini";
 
 /// Default Gemini model for rewrites: the latest fast model. Flash fits the short
@@ -619,8 +619,8 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         },
         // Optional "free cloud" engine: Google Gemini via its OpenAI-compatible
         // endpoint. Labelled neutrally; the privacy note (free tier may be used by
-        // Google to improve their models) lives in the settings UI. Key is
-        // per-user or baked from TOKEZLY_GEMINI_API_KEY (see baked_default_api_key).
+        // Google to improve their models) lives in the settings UI. The API key
+        // is entered per-user in Settings — never baked into the build.
         PostProcessProvider {
             id: GEMINI_PROVIDER_ID.to_string(),
             label: "Free Cloud".to_string(),
@@ -742,19 +742,6 @@ fn default_model_for_provider(provider_id: &str) -> String {
     String::new()
 }
 
-/// The API key a provider should default to. Empty for every provider (users
-/// paste their own), except the free-cloud provider, which can carry a key baked
-/// from `TOKEZLY_GEMINI_API_KEY` at build time (see build.rs) so a default build
-/// works with no per-user setup. Empty when no key was baked.
-fn baked_default_api_key(provider_id: &str) -> String {
-    if provider_id == GEMINI_PROVIDER_ID {
-        return option_env!("TOKEZLY_GEMINI_API_KEY")
-            .unwrap_or("")
-            .to_string();
-    }
-    String::new()
-}
-
 fn default_post_process_models() -> HashMap<String, String> {
     let mut map = HashMap::new();
     for provider in default_post_process_providers() {
@@ -811,25 +798,11 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             }
         }
 
-        // Default each provider's key to empty; the free-cloud provider can carry
-        // a key baked from TOKEZLY_GEMINI_API_KEY so a default build works with no
-        // per-user setup. Self-heal an empty key to the baked one, but never
-        // overwrite a key the user has entered.
-        let baked = baked_default_api_key(&provider.id);
-        match settings.post_process_api_keys.get(&provider.id) {
-            None => {
-                settings
-                    .post_process_api_keys
-                    .insert(provider.id.clone(), baked);
-                changed = true;
-            }
-            Some(existing) if existing.is_empty() && !baked.is_empty() => {
-                settings
-                    .post_process_api_keys
-                    .insert(provider.id.clone(), baked);
-                changed = true;
-            }
-            _ => {}
+        if !settings.post_process_api_keys.contains_key(&provider.id) {
+            settings
+                .post_process_api_keys
+                .insert(provider.id.clone(), String::new());
+            changed = true;
         }
 
         let default_model = default_model_for_provider(&provider.id);

@@ -3,39 +3,8 @@ fn main() {
     build_apple_intelligence_bridge();
 
     generate_tray_translations();
-    bake_gemini_key();
 
     tauri_build::build()
-}
-
-/// Bake the optional free-cloud (Gemini) API key into the binary so a default
-/// build works with no per-user setup. Prefers an explicit process env var (CI /
-/// secret managers); otherwise reads the git-ignored `../.env`. Exposed to the
-/// crate via `option_env!("TOKEZLY_GEMINI_API_KEY")`. Emits nothing when no key
-/// is set, so the provider simply asks the user for their own key.
-fn bake_gemini_key() {
-    use std::fs;
-
-    println!("cargo:rerun-if-changed=../.env");
-    println!("cargo:rerun-if-env-changed=TOKEZLY_GEMINI_API_KEY");
-
-    let key = std::env::var("TOKEZLY_GEMINI_API_KEY")
-        .ok()
-        .filter(|v| !v.trim().is_empty())
-        .or_else(|| {
-            fs::read_to_string("../.env").ok().and_then(|content| {
-                content.lines().find_map(|line| {
-                    line.trim()
-                        .strip_prefix("TOKEZLY_GEMINI_API_KEY=")
-                        .map(|v| v.trim().trim_matches('"').to_string())
-                        .filter(|v| !v.is_empty())
-                })
-            })
-        });
-
-    if let Some(key) = key {
-        println!("cargo:rustc-env=TOKEZLY_GEMINI_API_KEY={key}");
-    }
 }
 
 /// Generate tray menu translations from frontend locale files.
