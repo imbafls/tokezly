@@ -750,12 +750,12 @@ fn default_model_for_provider(provider_id: &str) -> String {
         return GEMINI_DEFAULT_MODEL_ID.to_string();
     }
     match provider_id {
-        "openai" => "gpt-4o-mini".to_string(),                // VERIFY
-        "anthropic" => "claude-3-5-haiku-latest".to_string(), // VERIFY
-        "groq" => "llama-3.3-70b-versatile".to_string(),      // VERIFY
-        "cerebras" => "llama-3.3-70b".to_string(),            // VERIFY
-        "openrouter" => "openai/gpt-4o-mini".to_string(),     // VERIFY
-        "zai" => "glm-4-flash".to_string(),                   // VERIFY
+        "openai" => "gpt-4o-mini".to_string(), // verified available 2026-06
+        "anthropic" => "claude-haiku-4-5".to_string(), // claude-3-5-haiku retired 2026-02; current Haiku
+        "groq" => "llama-3.3-70b-versatile".to_string(), // VERIFY
+        "cerebras" => "llama-3.3-70b".to_string(),       // VERIFY
+        "openrouter" => "openai/gpt-4o-mini".to_string(), // verified available 2026-06
+        "zai" => "glm-4-flash".to_string(),               // VERIFY
         // bedrock_mantle + custom stay empty.
         _ => String::new(),
     }
@@ -912,6 +912,16 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             settings.post_process_prompts.push(curated);
             changed = true;
         }
+    }
+
+    // Heal a stale armed slot: pre-redesign installs had Clean as the only library
+    // prompt, so an existing store may have it armed. Clean is now Baseline-only
+    // (hidden from the library); clear that selection so the second hotkey falls
+    // back to verbatim instead of silently running Clean while the UI shows
+    // "no prompt armed".
+    if settings.post_process_selected_prompt_id.as_deref() == Some(CLEAN_PROMPT_ID) {
+        settings.post_process_selected_prompt_id = None;
+        changed = true;
     }
 
     changed
@@ -1348,5 +1358,27 @@ mod tests {
         settings.post_process_provider_id = "openai".to_string();
         ensure_post_process_defaults(&mut settings);
         assert_eq!(settings.post_process_provider_id, "openai");
+    }
+
+    #[test]
+    fn ensure_defaults_clears_clean_prompt_armed_slot() {
+        // Pre-redesign stores could have the Clean prompt armed (it was the only
+        // library prompt). Migration must clear it so the UI ("no prompt armed")
+        // and the second-hotkey behavior (verbatim) agree.
+        let mut settings = get_default_settings();
+        settings.post_process_selected_prompt_id = Some(CLEAN_PROMPT_ID.to_string());
+        ensure_post_process_defaults(&mut settings);
+        assert_eq!(settings.post_process_selected_prompt_id, None);
+    }
+
+    #[test]
+    fn ensure_defaults_keeps_non_clean_armed_slot() {
+        let mut settings = get_default_settings();
+        settings.post_process_selected_prompt_id = Some("builtin_bullets".to_string());
+        ensure_post_process_defaults(&mut settings);
+        assert_eq!(
+            settings.post_process_selected_prompt_id,
+            Some("builtin_bullets".to_string())
+        );
     }
 }

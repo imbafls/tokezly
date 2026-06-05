@@ -1035,6 +1035,11 @@ pub async fn fetch_post_process_models(
 pub fn set_post_process_selected_prompt(app: AppHandle, id: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
 
+    // The Clean baseline prompt is Baseline-only, never a library selection.
+    if id == settings::CLEAN_PROMPT_ID {
+        return Err("The baseline clean prompt cannot be armed as a library prompt".to_string());
+    }
+
     // Verify the prompt exists
     if !settings.post_process_prompts.iter().any(|p| p.id == id) {
         return Err(format!("Prompt with id '{}' not found", id));

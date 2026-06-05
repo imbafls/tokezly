@@ -139,9 +139,13 @@ fn resolve_rewrite_prompt(settings: &AppSettings, mode: RewriteMode) -> Option<S
         RewriteMode::Off => return None,
         RewriteMode::Clean => CLEAN_PROMPT_ID.to_string(),
         RewriteMode::Prompt => match &settings.post_process_selected_prompt_id {
-            Some(id) => id.clone(),
-            None => {
-                debug!("Prompt-mode rewrite skipped because no prompt is selected");
+            // CLEAN_PROMPT_ID is the always-on Baseline prompt, not a library
+            // selection. Older stores may still have it armed (it was the only
+            // built-in prompt before the library redesign); treat that as
+            // "nothing armed" so Prompt mode falls back to verbatim, matching the UI.
+            Some(id) if id != CLEAN_PROMPT_ID => id.clone(),
+            _ => {
+                debug!("Prompt-mode rewrite skipped because no library prompt is armed");
                 return None;
             }
         },
