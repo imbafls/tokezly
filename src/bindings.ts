@@ -754,23 +754,29 @@ async unloadModelManually() : Promise<Result<null, string>> {
 }
 },
 /**
- * Whether the on-device refinement model is downloaded and ready.
+ * Whether the named on-device refinement model is downloaded and ready.
  */
-async isOnDeviceModelAvailable() : Promise<boolean> {
-    return await TAURI_INVOKE("is_on_device_model_available");
+async isOnDeviceModelAvailable(filename: string) : Promise<boolean> {
+    return await TAURI_INVOKE("is_on_device_model_available", { filename });
 },
 /**
- * Download the default on-device refinement model into the app-data models dir.
- * 
+ * The curated catalog of on-device rewrite models for the picker.
+ */
+async getOnDeviceModelCatalog() : Promise<OnDeviceModelInfo[]> {
+    return await TAURI_INVOKE("get_on_device_model_catalog");
+},
+/**
+ * Download the named on-device refinement model into the app-data models dir.
+ *
  * Streams progress via the `on-device-model-download-progress` event (a float
  * percentage). Idempotent: if the model is already present this returns
  * immediately. The partial download is written to a `.partial` file and only
  * renamed into place once complete, so an interrupted download never leaves a
  * half-written model that the engine would try to load.
  */
-async downloadOnDeviceModel() : Promise<Result<null, string>> {
+async downloadOnDeviceModel(filename: string) : Promise<Result<null, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("download_on_device_model") };
+    return { status: "ok", data: await TAURI_INVOKE("download_on_device_model", { filename }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -778,14 +784,14 @@ async downloadOnDeviceModel() : Promise<Result<null, string>> {
 },
 /**
  * Run a refinement through the on-device engine and return the cleaned text.
- * 
+ *
  * Primarily a smoke/diagnostic entry point: lets the frontend (or a manual
  * invocation) prove in-process inference works without going through the full
  * dictation pipeline. Returns an error if the model is not downloaded.
  */
-async refineTextOnDevice(instruction: string, text: string) : Promise<Result<string, string>> {
+async refineTextOnDevice(filename: string, instruction: string, text: string) : Promise<Result<string, string>> {
     try {
-    return { status: "ok", data: await TAURI_INVOKE("refine_text_on_device", { instruction, text }) };
+    return { status: "ok", data: await TAURI_INVOKE("refine_text_on_device", { filename, instruction, text }) };
 } catch (e) {
     if(e instanceof Error) throw e;
     else return { status: "error", error: e  as any };
@@ -915,6 +921,7 @@ export type LogLevel = "trace" | "debug" | "info" | "warn" | "error"
 export type ModelInfo = { id: string; name: string; description: string; filename: string; url: string | null; sha256: string | null; size_mb: number; is_downloaded: boolean; is_downloading: boolean; partial_size: number; is_directory: boolean; engine_type: EngineType; accuracy_score: number; speed_score: number; supports_translation: boolean; is_recommended: boolean; supported_languages: string[]; supports_language_selection: boolean; is_custom: boolean }
 export type ModelLoadStatus = { is_loaded: boolean; current_model: string | null }
 export type ModelUnloadTimeout = "never" | "immediately" | "min_2" | "min_5" | "min_10" | "min_15" | "hour_1" | "sec_15"
+export type OnDeviceModelInfo = { filename: string; display_name: string; tier: string; url: string; approx_size_mb: number }
 export type OrtAcceleratorSetting = "auto" | "cpu" | "cuda" | "directml" | "rocm"
 export type OverlayPosition = "none" | "top" | "bottom"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }

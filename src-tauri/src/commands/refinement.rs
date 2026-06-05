@@ -4,7 +4,9 @@
 //! and trigger its (one-time) download. The engine itself lives in
 //! `crate::refinement`; loading is lazy and happens on first refine.
 
-use crate::refinement::{OnDeviceEngine, DEFAULT_MODEL_URL};
+use crate::refinement::{
+    catalog_url_for, on_device_model_catalog, OnDeviceEngine, OnDeviceModelInfo,
+};
 use futures_util::StreamExt;
 use log::{info, warn};
 use std::io::Write;
@@ -12,17 +14,24 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager};
 
-/// Whether the on-device refinement model is downloaded and ready.
+/// Whether the named on-device refinement model is downloaded and ready.
 #[tauri::command]
 #[specta::specta]
-pub fn is_on_device_model_available(app: AppHandle) -> bool {
+pub fn is_on_device_model_available(app: AppHandle, filename: String) -> bool {
     match app.try_state::<Arc<OnDeviceEngine>>() {
-        Some(engine) => engine.is_model_available(),
+        Some(engine) => engine.is_model_available(&filename),
         None => false,
     }
 }
 
-/// Download the default on-device refinement model into the app-data models dir.
+/// The curated catalog of on-device rewrite models for the picker.
+#[tauri::command]
+#[specta::specta]
+pub fn get_on_device_model_catalog() -> Vec<OnDeviceModelInfo> {
+    on_device_model_catalog()
+}
+
+/// Download the named on-device refinement model into the app-data models dir.
 ///
 /// Streams progress via the `on-device-model-download-progress` event (a float
 /// percentage). Idempotent: if the model is already present this returns
@@ -31,14 +40,16 @@ pub fn is_on_device_model_available(app: AppHandle) -> bool {
 /// half-written model that the engine would try to load.
 #[tauri::command]
 #[specta::specta]
-pub async fn download_on_device_model(app: AppHandle) -> Result<(), String> {
+pub async fn download_on_device_model(app: AppHandle, filename: String) -> Result<(), String> {
     let engine = app
         .try_state::<Arc<OnDeviceEngine>>()
         .ok_or_else(|| "On-device engine state missing".to_string())?
         .inner()
         .clone();
 
-    let target = engine.default_model_path();
+    let url = catalog_url_for(&filename)
+        .ok_or_else(|| format!("Unknown on-device model: {}", filename))?;
+    let target = engine.model_path(&filename);
     if target.is_file() {
         info!("On-device model already present at {:?}", target);
         return Ok(());
@@ -52,12 +63,12 @@ pub async fn download_on_device_model(app: AppHandle) -> Result<(), String> {
     let partial = target.with_extension("gguf.partial");
     info!(
         "Downloading on-device refinement model to {:?} from {}",
-        target, DEFAULT_MODEL_URL
+        target, url
     );
 
     let client = reqwest::Client::new();
     let response = client
-        .get(DEFAULT_MODEL_URL)
+        .get(&url)
         .send()
         .await
         .map_err(|e| format!("Download request failed: {}", e))?;
@@ -123,6 +134,7 @@ pub async fn download_on_device_model(app: AppHandle) -> Result<(), String> {
 #[specta::specta]
 pub async fn refine_text_on_device(
     app: AppHandle,
+    filename: String,
     instruction: String,
     text: String,
 ) -> Result<String, String> {
@@ -132,12 +144,13 @@ pub async fn refine_text_on_device(
         .inner()
         .clone();
 
-    if !engine.is_model_available() {
+    if !engine.is_model_available(&filename) {
         return Err("On-device model is not downloaded".to_string());
     }
 
     let result =
-        tauri::async_runtime::spawn_blocking(move || engine.refine(&instruction, &text)).await;
+        tauri::async_runtime::spawn_blocking(move || engine.refine(&filename, &instruction, &text))
+            .await;
 
     match result {
         Ok(Ok(Some(cleaned))) => Ok(cleaned),

@@ -417,7 +417,22 @@ async fn refine_on_device(
         }
     };
 
-    if !engine.is_model_available() {
+    // Resolve the selected on-device model filename (falls back to the default).
+    let filename = {
+        let s = get_settings(app);
+        let f = s
+            .post_process_models
+            .get(ON_DEVICE_PROVIDER_ID)
+            .cloned()
+            .unwrap_or_default();
+        if f.is_empty() {
+            crate::refinement::DEFAULT_MODEL_FILENAME.to_string()
+        } else {
+            f
+        }
+    };
+
+    if !engine.is_model_available(&filename) {
         debug!(
             "On-device model not downloaded yet; falling back to verbatim transcript"
         );
@@ -431,7 +446,7 @@ async fn refine_on_device(
     let user_text = transcription.to_string();
 
     let result = tauri::async_runtime::spawn_blocking(move || {
-        engine.refine(&system_prompt, &user_text)
+        engine.refine(&filename, &system_prompt, &user_text)
     })
     .await;
 

@@ -16,6 +16,10 @@ import { useSettings } from "../../../hooks/useSettings";
 /// yet downloaded, the AI Rewrite page surfaces an in-app download control.
 const ON_DEVICE_PROVIDER_ID = "on_device";
 
+// Default on-device model filename (mirrors the Rust `DEFAULT_MODEL_FILENAME`).
+// TODO(C2): replace this single-model card with the catalog-driven picker.
+const DEFAULT_MODEL_FILENAME = "gemma-2-2b-it-Q4_K_M.gguf";
+
 // In-app download card for the in-process on-device refinement model. Shown
 // only when the on-device provider is the active refinement provider. Reflects
 // three states: missing (offers a download), downloading (live progress from
@@ -34,7 +38,9 @@ export const OnDeviceModelCard: React.FC = () => {
 
   const refreshAvailability = useCallback(async () => {
     try {
-      const ready = await commands.isOnDeviceModelAvailable();
+      const ready = await commands.isOnDeviceModelAvailable(
+        DEFAULT_MODEL_FILENAME,
+      );
       setAvailable(ready);
     } catch {
       setAvailable(false);
@@ -65,7 +71,9 @@ export const OnDeviceModelCard: React.FC = () => {
     setDownloading(true);
     setPercent(0);
     try {
-      const result = await commands.downloadOnDeviceModel();
+      const result = await commands.downloadOnDeviceModel(
+        DEFAULT_MODEL_FILENAME,
+      );
       if (result.status === "ok") {
         await refreshAvailability();
       } else {

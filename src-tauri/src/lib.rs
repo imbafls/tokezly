@@ -435,6 +435,7 @@ pub fn run(cli_args: CliArgs) {
             commands::transcription::get_model_load_status,
             commands::transcription::unload_model_manually,
             commands::refinement::is_on_device_model_available,
+            commands::refinement::get_on_device_model_catalog,
             commands::refinement::download_on_device_model,
             commands::refinement::refine_text_on_device,
             commands::history::get_history_entries,

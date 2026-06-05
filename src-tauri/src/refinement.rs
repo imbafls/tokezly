@@ -23,6 +23,8 @@ use llama_cpp_2::model::params::LlamaModelParams;
 use llama_cpp_2::model::{AddBos, LlamaChatMessage, LlamaModel};
 use llama_cpp_2::sampling::LlamaSampler;
 use log::{debug, info, warn};
+use serde::Serialize;
+use specta::Type;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
 use once_cell::sync::OnceCell;
@@ -41,6 +43,56 @@ pub const DEFAULT_MODEL_FILENAME: &str = "gemma-2-2b-it-Q4_K_M.gguf";
 /// this filename will be loaded.
 pub const DEFAULT_MODEL_URL: &str =
     "https://huggingface.co/bartowski/gemma-2-2b-it-GGUF/resolve/main/gemma-2-2b-it-Q4_K_M.gguf";
+
+/// One curated on-device rewrite model. The frontend renders these as the
+/// on-device picker; `filename` is both the catalog key and the value stored in
+/// `post_process_models["on_device"]`.
+#[derive(Serialize, Clone, Debug, Type)]
+pub struct OnDeviceModelInfo {
+    pub filename: String,
+    pub display_name: String,
+    /// "tiny" | "balanced" | "quality" (frontend maps to a label)
+    pub tier: String,
+    pub url: String,
+    pub approx_size_mb: u32,
+}
+
+/// Code-authoritative catalog of curated small on-device rewrite LLMs. All load
+/// on the vendored llama.cpp (gemma2 / gemma3 / phi3 archs). The Gemma 2 2B
+/// entry is the default and reuses the existing constants.
+pub fn on_device_model_catalog() -> Vec<OnDeviceModelInfo> {
+    vec![
+        OnDeviceModelInfo {
+            filename: "google_gemma-3-1b-it-Q4_K_M.gguf".to_string(),
+            display_name: "Gemma 3 1B".to_string(),
+            tier: "tiny".to_string(),
+            url: "https://huggingface.co/bartowski/google_gemma-3-1b-it-GGUF/resolve/main/google_gemma-3-1b-it-Q4_K_M.gguf".to_string(),
+            approx_size_mb: 769,
+        },
+        OnDeviceModelInfo {
+            filename: DEFAULT_MODEL_FILENAME.to_string(),
+            display_name: "Gemma 2 2B".to_string(),
+            tier: "balanced".to_string(),
+            url: DEFAULT_MODEL_URL.to_string(),
+            approx_size_mb: 1630,
+        },
+        OnDeviceModelInfo {
+            filename: "microsoft_Phi-4-mini-instruct-Q4_K_M.gguf".to_string(),
+            display_name: "Phi-4 mini".to_string(),
+            tier: "quality".to_string(),
+            url: "https://huggingface.co/bartowski/microsoft_Phi-4-mini-instruct-GGUF/resolve/main/microsoft_Phi-4-mini-instruct-Q4_K_M.gguf".to_string(),
+            approx_size_mb: 2376,
+        },
+    ]
+}
+
+/// Look up the download URL for a catalog filename.
+pub fn catalog_url_for(filename: &str) -> Option<String> {
+    on_device_model_catalog()
+        .into_iter()
+        .find(|m| m.filename == filename)
+        .map(|m| m.url)
+}
 
 /// Hard cap on generated tokens. Refinement is a bounded rewrite of a short
 /// transcript, so we never need a long generation; this also bounds latency.
@@ -256,10 +308,12 @@ pub struct OnDeviceEngine {
     /// get-then-set would let a second concurrent caller hit
     /// `init()`'s global "already initialized" error and spuriously fail.
     backend: OnceCell<Arc<LlamaBackend>>,
-    /// The loaded model. The mutex serializes the one-time cold load so two
-    /// concurrent first-refines can't both map the ~1.6 GB GGUF; inference itself
-    /// runs lock-free on a cloned `Arc`, so dictations still refine concurrently.
-    model: Mutex<Option<Arc<OnDeviceModel>>>,
+    /// The loaded model, tagged with its filename. The mutex serializes the
+    /// one-time cold load so two concurrent first-refines can't both map the
+    /// ~1.6 GB GGUF; inference itself runs lock-free on a cloned `Arc`, so
+    /// dictations still refine concurrently. Reloads when the selected filename
+    /// changes (the user picked a different on-device model).
+    model: Mutex<Option<(String, Arc<OnDeviceModel>)>>,
 }
 
 impl OnDeviceEngine {
@@ -272,14 +326,14 @@ impl OnDeviceEngine {
         }
     }
 
-    /// Path to the default on-device model file.
-    pub fn default_model_path(&self) -> PathBuf {
-        self.models_dir.join(DEFAULT_MODEL_FILENAME)
+    /// Path to a specific on-device model file by filename.
+    pub fn model_path(&self, filename: &str) -> PathBuf {
+        self.models_dir.join(filename)
     }
 
-    /// Whether the default model weights are present on disk.
-    pub fn is_model_available(&self) -> bool {
-        self.default_model_path().is_file()
+    /// Whether a specific model's weights are present on disk.
+    pub fn is_model_available(&self, filename: &str) -> bool {
+        self.model_path(filename).is_file()
     }
 
     /// Lazily get-or-init the shared llama backend. `get_or_try_init` runs the
@@ -296,42 +350,59 @@ impl OnDeviceEngine {
             .cloned()
     }
 
-    /// Get the loaded model, loading it on first use. Returns `Ok(None)` if the
-    /// weights are not on disk yet (caller falls back to verbatim).
-    fn get_or_load_model(&self) -> Result<Option<Arc<OnDeviceModel>>, String> {
+    /// Get the model named `filename`, loading it on first use and caching it.
+    /// Returns `Ok(None)` if the weights are not on disk yet (caller falls back
+    /// to verbatim). Reloads when the selected filename changes (the user picked
+    /// a different on-device model).
+    fn get_or_load_model(&self, filename: &str) -> Result<Option<Arc<OnDeviceModel>>, String> {
         // Hold the lock across the cold load so only one thread ever loads the
         // model; concurrent first-refines wait here and then share the result.
         // Inference runs later on a cloned `Arc`, off the lock, so it stays
         // concurrent.
         let mut guard = self.model.lock().unwrap();
-        if let Some(m) = guard.as_ref() {
-            return Ok(Some(m.clone()));
+        if let Some((loaded, m)) = guard.as_ref() {
+            if loaded == filename {
+                return Ok(Some(m.clone()));
+            }
+            debug!(
+                "On-device model switching from {} to {}; reloading",
+                loaded, filename
+            );
         }
 
-        let path = self.default_model_path();
+        let path = self.model_path(filename);
         if !path.is_file() {
             debug!(
-                "On-device model not present at {:?}; refinement will fall back to verbatim",
-                path
+                "On-device model {} not present at {:?}; refinement will fall back to verbatim",
+                filename, path
             );
             return Ok(None);
         }
 
         let backend = self.backend()?;
-        info!("Lazily loading on-device refinement model from {:?}", path);
+        info!(
+            "Lazily loading on-device refinement model {} from {:?}",
+            filename, path
+        );
         let model = Arc::new(OnDeviceModel::load(backend, &path)?);
-        *guard = Some(model.clone());
+        *guard = Some((filename.to_string(), model.clone()));
         Ok(Some(model))
     }
 
-    /// Refine `user_text` using `system_prompt`. Returns:
+    /// Refine `user_text` with `system_prompt`, using the model named `filename`.
+    /// Returns:
     /// - `Ok(Some(text))` on a successful in-process rewrite,
-    /// - `Ok(None)` when the model is not downloaded (graceful degrade),
+    /// - `Ok(None)` when that model is not downloaded (graceful degrade),
     /// - `Err(_)` on an actual inference failure (caller still falls back).
     ///
     /// CPU-bound — call inside `tokio::task::spawn_blocking`.
-    pub fn refine(&self, system_prompt: &str, user_text: &str) -> Result<Option<String>, String> {
-        let Some(model) = self.get_or_load_model()? else {
+    pub fn refine(
+        &self,
+        filename: &str,
+        system_prompt: &str,
+        user_text: &str,
+    ) -> Result<Option<String>, String> {
+        let Some(model) = self.get_or_load_model(filename)? else {
             return Ok(None);
         };
         let cleaned = model.refine(system_prompt, user_text)?;
@@ -378,14 +449,17 @@ mod tests {
         assert!(model_path.is_file(), "model must be present after download");
 
         let engine = OnDeviceEngine::new(models_dir);
-        assert!(engine.is_model_available(), "engine should see the model");
+        assert!(
+            engine.is_model_available(DEFAULT_MODEL_FILENAME),
+            "engine should see the model"
+        );
 
         let instruction = "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation.\n2. Remove filler words (um, uh).\n\nPreserve exact meaning and word order. Do not paraphrase. Return only the cleaned transcript.";
         let messy = "um so the the websocket reconnect it doesn't back off it just uh hammers the endpoint";
 
         let start = std::time::Instant::now();
         let out = engine
-            .refine(instruction, messy)
+            .refine(DEFAULT_MODEL_FILENAME, instruction, messy)
             .expect("refine should not error")
             .expect("model is present so output should be Some");
         let elapsed = start.elapsed();
@@ -434,7 +508,7 @@ mod tests {
         let messy = "okay so first we need to fix the login bug um second uh we should add the csv export feature and then third we have to write some tests for the payment flow";
 
         let out = engine
-            .refine(&system_prompt, messy)
+            .refine(DEFAULT_MODEL_FILENAME, &system_prompt, messy)
             .expect("refine should not error")
             .expect("model present so output is Some");
 
