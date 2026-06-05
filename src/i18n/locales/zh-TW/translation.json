@@ -176,7 +176,7 @@
           },
           "transcribe_with_post_process": {
             "name": "後處理快捷鍵",
-            "description": "可選：專用快捷鍵，使用時一律對轉錄結果套用 AI 後處理"
+            "description": "可選：專用快捷鍵，套用您所選的 AI 改寫提示詞（僅在 AI 改寫已啟用時有效）。"
           }
         },
         "errors": {

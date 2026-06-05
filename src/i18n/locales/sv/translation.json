@@ -176,7 +176,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Snabbkommando för efterbearbetning",
-            "description": "Valfritt: En dedikerad snabbknapp som alltid tillämpar AI-efterbearbetning på din transkription."
+            "description": "Valfritt: Ett dedikerat snabbkommando som tillämpar din valda AI-omskrivningsprompt (endast när AI-omskrivning är på)."
           }
         },
         "errors": {

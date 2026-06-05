@@ -59,7 +59,8 @@ struct TranscribeAction {
 
 /// How the transcript should be rewritten before pasting.
 ///
-/// - `Off`: paste the verbatim transcript (master AI toggle off, plain binding).
+/// - `Off`: paste the verbatim transcript. This is what the master AI toggle
+///   (`post_process_enabled`) being off produces, for either binding.
 /// - `Clean`: always-on auto-polish using the built-in clean prompt. This is the
 ///   default behavior of the plain "transcribe" binding when the master AI toggle
 ///   (`post_process_enabled`) is on.
@@ -75,22 +76,37 @@ pub(crate) enum RewriteMode {
 impl RewriteMode {
     /// Resolve the rewrite mode from which binding fired plus the master toggle.
     ///
-    /// - The Prompt-mode binding always rewrites with the selected prompt.
-    /// - The plain binding auto-polishes (Clean) when the master toggle is on,
-    ///   and otherwise pastes verbatim (Off).
+    /// The master toggle (`post_process_enabled`) is the whole-feature kill
+    /// switch the AI Rewrite UI promises ("When off, dictation is pasted
+    /// verbatim — just speech-to-text"). When it is off, BOTH bindings paste
+    /// verbatim (Off) — including the dedicated "transcribe_with_post_process"
+    /// binding. When it is on, the binding decides: the plain binding
+    /// auto-polishes (Clean); the dedicated binding runs the selected prompt
+    /// (Prompt).
     fn resolve(post_process_binding: bool, post_process_enabled: bool) -> Self {
-        if post_process_binding {
-            RewriteMode::Prompt
-        } else if post_process_enabled {
-            RewriteMode::Clean
-        } else {
+        if !post_process_enabled {
             RewriteMode::Off
+        } else if post_process_binding {
+            RewriteMode::Prompt
+        } else {
+            RewriteMode::Clean
         }
     }
 
     /// Whether this mode runs the LLM rewrite at all.
     fn rewrites(self) -> bool {
         matches!(self, RewriteMode::Clean | RewriteMode::Prompt)
+    }
+
+    /// Whether the dedicated "transcribe_with_post_process" binding produced this
+    /// mode. Only `Prompt` comes from that binding; `Clean`/`Off` come from the
+    /// plain binding. Used to re-derive the original binding when re-resolving a
+    /// stored mode (e.g. result-card Retry) against the current master toggle.
+    /// NOTE: this is intentionally not `rewrites()` — `Clean` also rewrites but
+    /// came from the plain binding, so treating it as the Prompt binding would
+    /// wrongly upgrade a Clean retry to Prompt.
+    fn was_prompt_binding(self) -> bool {
+        matches!(self, RewriteMode::Prompt)
     }
 
     /// Short tag describing the rewrite for the paste toast sub-line.
@@ -850,9 +866,16 @@ pub async fn retry_last_dictation(app: AppHandle) -> Result<(), String> {
             .as_ref()
             .map(|d| (d.transcription.clone(), d.mode))
     });
-    let Some((transcription, mode)) = last else {
+    let Some((transcription, stored_mode)) = last else {
         return Err("No recent dictation to retry".to_string());
     };
+
+    // Re-resolve the stored mode against the *current* master toggle (mirrors
+    // `rewrite_mode_for_history`) so the kill switch applies to Retry too: if AI
+    // rewrite was turned off after this dictation, Retry pastes verbatim instead
+    // of replaying the rewrite captured while it was on.
+    let post_process_enabled = get_settings(&app).post_process_enabled;
+    let mode = RewriteMode::resolve(stored_mode.was_prompt_binding(), post_process_enabled);
 
     if mode.rewrites() {
         show_processing_overlay(&app, &rewrite_engine_label(&app, mode));
@@ -1053,8 +1076,9 @@ impl ShortcutAction for TranscribeAction {
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
 
         // Resolve the rewrite mode from which binding fired plus the master AI
-        // toggle: plain binding auto-polishes (Clean) when the toggle is on and
-        // is verbatim (Off) otherwise; the dedicated binding is always Prompt.
+        // toggle: when the toggle is off, both bindings are verbatim (Off). When
+        // it is on, the plain binding auto-polishes (Clean) and the dedicated
+        // binding runs the selected prompt (Prompt).
         let post_process_enabled = get_settings(app).post_process_enabled;
         let mode = RewriteMode::resolve(self.post_process, post_process_enabled);
         // `post_process` (bool) is still what history records as "post-process
@@ -1291,3 +1315,60 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
     );
     map
 });
+
+#[cfg(test)]
+mod tests {
+    use super::RewriteMode;
+
+    // The master AI-rewrite toggle (`post_process_enabled`) is the whole-feature
+    // kill switch the AI Rewrite UI promises ("When off, dictation is pasted
+    // verbatim — just speech-to-text"). When it is off, NEITHER binding may
+    // rewrite: not the plain "transcribe" binding and not the dedicated
+    // "transcribe_with_post_process" binding.
+    #[test]
+    fn master_toggle_off_pastes_verbatim_for_both_bindings() {
+        // plain binding, toggle off -> verbatim
+        assert_eq!(RewriteMode::resolve(false, false), RewriteMode::Off);
+        // dedicated post-process binding, toggle off -> still verbatim (kill switch)
+        assert_eq!(RewriteMode::resolve(true, false), RewriteMode::Off);
+    }
+
+    // With the master toggle on, the binding decides the behavior: the plain
+    // binding auto-polishes (Clean), the dedicated binding runs the selected
+    // prompt (Prompt).
+    #[test]
+    fn master_toggle_on_resolves_per_binding() {
+        assert_eq!(RewriteMode::resolve(false, true), RewriteMode::Clean);
+        assert_eq!(RewriteMode::resolve(true, true), RewriteMode::Prompt);
+    }
+
+    // Result-card Retry re-resolves a STORED mode against the current toggle via
+    // `was_prompt_binding()`. The kill switch must apply: a dictation captured
+    // while AI was on, retried after AI is turned off, pastes verbatim.
+    #[test]
+    fn retry_re_resolves_stored_mode_against_current_toggle() {
+        // Captured as Prompt, retried after AI turned off -> verbatim.
+        let stored = RewriteMode::Prompt;
+        assert_eq!(
+            RewriteMode::resolve(stored.was_prompt_binding(), false),
+            RewriteMode::Off
+        );
+        // Captured as Clean, retried after AI turned off -> verbatim.
+        let stored = RewriteMode::Clean;
+        assert_eq!(
+            RewriteMode::resolve(stored.was_prompt_binding(), false),
+            RewriteMode::Off
+        );
+        // Retried while AI is still on: each binding keeps its behavior. This
+        // guards against deriving the binding from `rewrites()` (which is true
+        // for Clean and would wrongly upgrade a Clean retry to Prompt).
+        assert_eq!(
+            RewriteMode::resolve(RewriteMode::Clean.was_prompt_binding(), true),
+            RewriteMode::Clean
+        );
+        assert_eq!(
+            RewriteMode::resolve(RewriteMode::Prompt.was_prompt_binding(), true),
+            RewriteMode::Prompt
+        );
+    }
+}

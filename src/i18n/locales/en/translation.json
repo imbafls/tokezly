@@ -176,7 +176,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
-            "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+            "description": "Optional: A dedicated hotkey that applies your selected AI rewrite prompt (only when AI rewrite is on)."
           }
         },
         "errors": {

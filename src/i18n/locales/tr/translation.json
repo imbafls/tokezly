@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Son İşlem Kısayolu",
-            "description": "İsteğe bağlı: Transkripsiyonunuza her zaman AI son işleme uygulayan özel bir kısayol tuşu."
+            "description": "İsteğe bağlı: Seçili AI yeniden yazma prompt'unuzu uygulayan özel bir kısayol tuşu (yalnızca AI yeniden yazma açıkken)."
           }
         },
         "errors": {

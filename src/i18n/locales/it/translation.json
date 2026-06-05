@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Tasto di post-elaborazione",
-            "description": "Facoltativo: Un tasto di scelta rapida dedicato che applica sempre la post-elaborazione IA alla trascrizione."
+            "description": "Facoltativo: Un tasto di scelta rapida dedicato che applica il prompt di post-elaborazione IA selezionato (solo quando la post-elaborazione IA è attiva)."
           }
         },
         "errors": {

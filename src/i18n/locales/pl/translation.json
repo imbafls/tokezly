@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Skrót postprocessingu",
-            "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który zawsze stosuje postprocessing AI do transkrypcji."
+            "description": "Opcjonalnie: Dedykowany skrót klawiszowy, który stosuje wybrany prompt postprocessingu AI (tylko gdy postprocessing AI jest włączony)."
           }
         },
         "errors": {

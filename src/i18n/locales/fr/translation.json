@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Raccourci de post-traitement",
-            "description": "Facultatif : Un raccourci dédié qui applique toujours le post-traitement IA à votre transcription."
+            "description": "Facultatif : Un raccourci dédié qui applique le prompt de réécriture IA sélectionné (uniquement lorsque la réécriture IA est activée)."
           }
         },
         "errors": {

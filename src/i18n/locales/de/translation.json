@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Nachbearbeitungs-Tastenkürzel",
-            "description": "Optional: Ein dediziertes Tastenkürzel, das immer die KI-Nachbearbeitung auf deine Transkription anwendet."
+            "description": "Optional: Ein dediziertes Tastenkürzel, das deinen ausgewählten KI-Nachbearbeitungs-Prompt anwendet (nur wenn die KI-Nachbearbeitung aktiviert ist)."
           }
         },
         "errors": {

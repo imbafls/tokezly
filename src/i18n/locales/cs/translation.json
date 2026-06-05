@@ -194,7 +194,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Klávesa pro následné zpracování",
-            "description": "Volitelné: Vyhrazená klávesová zkratka, která vždy použije AI následné zpracování na váš přepis."
+            "description": "Volitelné: Vyhrazená klávesová zkratka, která použije vámi vybraný prompt pro AI úpravu (pouze když je AI úprava zapnutá)."
           }
         },
         "errors": {

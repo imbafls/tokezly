@@ -176,7 +176,7 @@
           },
           "transcribe_with_post_process": {
             "name": "후처리 단축키",
-            "description": "선택 사항: 항상 AI 후처리를 적용하는 전용 단축키입니다."
+            "description": "선택 사항: 선택한 AI 후처리 프롬프트를 적용하는 전용 단축키입니다(AI 후처리가 켜져 있을 때만 작동)."
           }
         },
         "errors": {

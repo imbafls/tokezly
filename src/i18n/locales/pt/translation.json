@@ -176,7 +176,7 @@
           },
           "transcribe_with_post_process": {
             "name": "Tecla de Pós-Processamento",
-            "description": "Opcional: Uma tecla de atalho dedicada que sempre aplica pós-processamento com IA à sua transcrição."
+            "description": "Opcional: Uma tecla de atalho dedicada que aplica o prompt de reescrita com IA selecionado (apenas quando a reescrita com IA está ativada)."
           }
         },
         "errors": {
