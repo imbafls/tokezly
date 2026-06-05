@@ -108,6 +108,7 @@ const RecordingOverlay: React.FC = () => {
   const direction = getLanguageDirection(i18n.language);
 
   useEffect(() => {
+    let cleanup = () => {};
     const setup = async () => {
       const unlistenShow = await listen<{ state: OverlayState; engine: string }>(
         "show-overlay",
@@ -143,14 +144,15 @@ const RecordingOverlay: React.FC = () => {
         smoothedLevelsRef.current = smoothed;
         setLevels(smoothed.slice(0, NUM_BARS));
       });
-      return () => {
+      cleanup = () => {
         unlistenShow();
         unlistenHide();
         unlistenPaste();
         unlistenLevel();
       };
     };
-    setup();
+    void setup();
+    return () => cleanup();
   }, []);
 
   // Elapsed timer runs only while the listening capsule is on screen.
