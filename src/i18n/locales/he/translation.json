@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "הסקה מהירה לביצועים גבוהים עבור מודל זיהוי הדיבור Whisper של OpenAI",
           "details": "Tokezly משתמש ב-Whisper.cpp לתמלול מהיר ומקומי. תודה לעבודה המדהימה של Georgi Gerganov וכל התורמים."
+        },
+        "licenses": {
+          "title": "רישיונות קוד פתוח",
+          "description": "רישיונות והודעות של צד שלישי עבור הספריות, המודלים והגופנים ש-Tokezly בנוי מהם",
+          "button": "צפה ברישיונות"
         }
       }
     },

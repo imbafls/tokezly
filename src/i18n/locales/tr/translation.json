@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "OpenAI'nin Whisper otomatik konuşma tanıma modelinin yüksek performanslı çıkarımı",
           "details": "Tokezly, hızlı ve yerel konuşmadan metne dönüştürme için Whisper.cpp kullanır. Georgi Gerganov ve katkıda bulunanların harika çalışmaları için teşekkür ederiz."
+        },
+        "licenses": {
+          "title": "Açık kaynak lisansları",
+          "description": "Tokezly'nin geliştirilmesinde kullanılan kitaplıklar, modeller ve yazı tipleri için üçüncü taraf lisansları ve bildirimleri",
+          "button": "Lisansları görüntüle"
         }
       }
     },

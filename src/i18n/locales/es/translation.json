@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "Inferencia de alto rendimiento del modelo de reconocimiento automático de voz Whisper de OpenAI",
           "details": "Tokezly usa Whisper.cpp para procesamiento de voz a texto rápido y local. Gracias al increíble trabajo de Georgi Gerganov y colaboradores."
+        },
+        "licenses": {
+          "title": "Licencias de código abierto",
+          "description": "Licencias y avisos de terceros para las bibliotecas, los modelos y las fuentes con los que se ha construido Tokezly",
+          "button": "Ver licencias"
         }
       }
     },

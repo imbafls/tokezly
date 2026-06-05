@@ -87,6 +87,24 @@ export const AboutSettings: React.FC = () => {
             {t("settings.about.acknowledgments.whisper.details")}
           </div>
         </SettingContainer>
+
+        <SettingContainer
+          title={t("settings.about.acknowledgments.licenses.title")}
+          description={t("settings.about.acknowledgments.licenses.description")}
+          grouped={true}
+        >
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={() =>
+              openUrl(
+                "https://github.com/imbafls/tokezly/blob/main/THIRD-PARTY-NOTICES.md",
+              )
+            }
+          >
+            {t("settings.about.acknowledgments.licenses.button")}
+          </Button>
+        </SettingContainer>
       </SettingsGroup>
     </div>
   );

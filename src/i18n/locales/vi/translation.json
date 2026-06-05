@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "Suy luận hiệu suất cao của mô hình nhận dạng giọng nói tự động Whisper của OpenAI",
           "details": "Tokezly sử dụng Whisper.cpp để xử lý chuyển đổi giọng nói thành văn bản nhanh, cục bộ. Cảm ơn công việc tuyệt vời của Georgi Gerganov và các cộng tác viên."
+        },
+        "licenses": {
+          "title": "Giấy phép mã nguồn mở",
+          "description": "Giấy phép và thông báo của bên thứ ba cho các thư viện, mô hình và phông chữ mà Tokezly được xây dựng dựa trên",
+          "button": "Xem giấy phép"
         }
       }
     },

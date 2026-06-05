@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "OpenAIのWhisper自動音声認識モデルの高性能推論",
           "details": "Tokezlyは高速でローカルな音声からテキストへの変換にWhisper.cppを使用しています。Georgi Gerganov氏と貢献者の皆様の素晴らしい仕事に感謝します。"
+        },
+        "licenses": {
+          "title": "オープンソースライセンス",
+          "description": "Tokezlyが利用しているライブラリ、モデル、フォントのサードパーティライセンスおよび告知",
+          "button": "ライセンスを見る"
         }
       }
     },

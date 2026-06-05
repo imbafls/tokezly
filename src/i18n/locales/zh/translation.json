@@ -608,6 +608,11 @@
           "title": "Whisper.cpp",
           "description": "OpenAI Whisper 自动语音识别模型的高性能推理",
           "details": "Tokezly 使用 Whisper.cpp 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
+        },
+        "licenses": {
+          "title": "开源许可证",
+          "description": "Tokezly 所使用的库、模型和字体的第三方许可证及声明",
+          "button": "查看许可证"
         }
       }
     },
