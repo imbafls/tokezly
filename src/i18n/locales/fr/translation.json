@@ -398,7 +398,7 @@
           "refreshModels": "Actualiser les modèles"
         },
         "freeCloud": {
-          "note": "Free cloud rewrites — no key or local model needed. Your text is sent to a free cloud service that may use it to improve their models.",
+          "note": "Powered by Google Gemini's free tier. Your text is sent to Google, which may use it to improve their models.",
           "getKey": "Get a free key"
         }
       },

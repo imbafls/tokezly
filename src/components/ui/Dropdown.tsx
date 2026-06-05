@@ -5,6 +5,8 @@ export interface DropdownOption {
   value: string;
   label: string;
   disabled?: boolean;
+  /** Optional category header to group this option under in the menu. */
+  group?: string;
 }
 
 interface DropdownProps {
@@ -92,21 +94,45 @@ export const Dropdown: React.FC<DropdownProps> = ({
               {t("common.noOptionsFound")}
             </div>
           ) : (
-            options.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`w-full px-2 py-1 text-sm text-start hover:bg-logo-primary/10 transition-colors duration-150 ${
-                  selectedValue === option.value
-                    ? "bg-logo-primary/20 font-semibold"
-                    : ""
-                } ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={() => handleSelect(option.value)}
-                disabled={option.disabled}
-              >
-                <span className="truncate">{option.label}</span>
-              </button>
-            ))
+            (() => {
+              const renderOption = (option: DropdownOption) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`w-full px-2 py-1 text-sm text-start hover:bg-logo-primary/10 transition-colors duration-150 ${
+                    selectedValue === option.value
+                      ? "bg-logo-primary/20 font-semibold"
+                      : ""
+                  } ${option.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  onClick={() => handleSelect(option.value)}
+                  disabled={option.disabled}
+                >
+                  <span className="truncate">{option.label}</span>
+                </button>
+              );
+
+              // Flat list unless any option declares a group.
+              if (!options.some((o) => o.group)) {
+                return options.map(renderOption);
+              }
+              const groupOrder: string[] = [];
+              for (const o of options) {
+                const g = o.group ?? "";
+                if (!groupOrder.includes(g)) groupOrder.push(g);
+              }
+              return groupOrder.map((g) => (
+                <div key={g || "_ungrouped"}>
+                  {g && (
+                    <div className="px-2 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide opacity-50">
+                      {g}
+                    </div>
+                  )}
+                  {options
+                    .filter((o) => (o.group ?? "") === g)
+                    .map(renderOption)}
+                </div>
+              ));
+            })()
           )}
         </div>
       )}

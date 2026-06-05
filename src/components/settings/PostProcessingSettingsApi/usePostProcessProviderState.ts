@@ -40,9 +40,22 @@ const CLAUDE_CODE_PROVIDER_ID = "claude_code";
 const CLAUDE_CODE_MODELS = ["haiku", "sonnet", "opus"];
 
 const GEMINI_PROVIDER_ID = "gemini";
-// Seed the free-cloud (Gemini) model choices so the picker works before any
-// /models fetch. Flash leads: fastest and ideal for the short cleanup rewrite.
-const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash-lite"];
+// Seed the Gemini model choices so the picker works before any /models fetch. A
+// stable 2.5 Flash model leads for reliability — the newest model is the most
+// demand-throttled on the free tier and 503s under load; flash-lite is fastest.
+const GEMINI_MODELS = [
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-3.5-flash",
+];
+// Providers that cost nothing to run (local, or a free tier) vs. the rest, which
+// need the user's own paid API key. Used to group the provider picker.
+const FREE_PROVIDER_IDS = [
+  "on_device",
+  "apple_intelligence",
+  "claude_code",
+  "gemini",
+];
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
@@ -83,6 +96,9 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     return providers.map((provider) => ({
       value: provider.id,
       label: provider.label,
+      group: FREE_PROVIDER_IDS.includes(provider.id)
+        ? "Free"
+        : "Your own API key",
     }));
   }, [providers]);
 

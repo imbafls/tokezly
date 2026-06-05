@@ -38,9 +38,11 @@ pub const CLAUDE_CODE_DEFAULT_MODEL_ID: &str = "sonnet";
 /// in Settings — cloud keys are never baked into the build.
 pub const GEMINI_PROVIDER_ID: &str = "gemini";
 
-/// Default Gemini model for rewrites: the latest fast model. Flash fits the short
-/// cleanup task best (Pro is slower and unnecessary). Users can change it.
-pub const GEMINI_DEFAULT_MODEL_ID: &str = "gemini-3.5-flash";
+/// Default Gemini model for rewrites. A stable Flash model (deliberately NOT the
+/// newest): the latest model is the most demand-throttled on the free tier and
+/// 503s under load (observed with gemini-3.5-flash). 2.5-flash is fast, reliably
+/// available, and more than enough for the cleanup task. Users can change it.
+pub const GEMINI_DEFAULT_MODEL_ID: &str = "gemini-2.5-flash";
 
 /// Id of the built-in "clean" prompt. This is the always-on auto-polish prompt
 /// applied to plain dictation when the master AI toggle (`post_process_enabled`)
@@ -623,7 +625,7 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
         // is entered per-user in Settings — never baked into the build.
         PostProcessProvider {
             id: GEMINI_PROVIDER_ID.to_string(),
-            label: "Free Cloud".to_string(),
+            label: "Gemini".to_string(),
             base_url: "https://generativelanguage.googleapis.com/v1beta/openai".to_string(),
             allow_base_url_edit: false,
             models_endpoint: Some("/models".to_string()),
@@ -779,15 +781,24 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             .find(|p| p.id == provider.id)
         {
             Some(existing) => {
-                // Sync supports_structured_output field for existing providers (migration)
+                // The provider catalog is code-authoritative, so sync its metadata
+                // onto existing installs (e.g. a renamed label). The base_url is
+                // only synced for fixed providers — never for "custom", whose
+                // base_url the user edits.
+                if existing.label != provider.label {
+                    existing.label = provider.label.clone();
+                    changed = true;
+                }
+                if existing.models_endpoint != provider.models_endpoint {
+                    existing.models_endpoint = provider.models_endpoint.clone();
+                    changed = true;
+                }
                 if existing.supports_structured_output != provider.supports_structured_output {
-                    debug!(
-                        "Updating supports_structured_output for provider '{}' from {} to {}",
-                        provider.id,
-                        existing.supports_structured_output,
-                        provider.supports_structured_output
-                    );
                     existing.supports_structured_output = provider.supports_structured_output;
+                    changed = true;
+                }
+                if !provider.allow_base_url_edit && existing.base_url != provider.base_url {
+                    existing.base_url = provider.base_url.clone();
                     changed = true;
                 }
             }
