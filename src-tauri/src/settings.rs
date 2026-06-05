@@ -772,7 +772,7 @@ fn default_post_process_models() -> HashMap<String, String> {
     map
 }
 
-/// The 5 curated library prompts seeded on every install. Each is `builtin: true`
+/// The 7 curated library prompts seeded on every install. Each is `builtin: true`
 /// (frontend shows a badge + blocks deletion). Instructions end with ${output}.
 fn curated_library_prompts() -> Vec<LLMPrompt> {
     vec![
@@ -804,6 +804,18 @@ fn curated_library_prompts() -> Vec<LLMPrompt> {
             id: "builtin_summarize".to_string(),
             name: "Summarize".to_string(),
             prompt: "Summarize the text in a few sentences capturing the key points. Return only the summary. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_formal".to_string(),
+            name: "Formal".to_string(),
+            prompt: "Rewrite the text in a clear, formal, professional tone. Fix grammar and remove casual phrasing and filler. Keep the meaning. Return only the rewritten text. Text: ${output}".to_string(),
+            builtin: true,
+        },
+        LLMPrompt {
+            id: "builtin_casual".to_string(),
+            name: "Casual".to_string(),
+            prompt: "Rewrite the text in a relaxed, casual, friendly tone, as a natural everyday message. Keep the meaning. Return only the rewritten text. Text: ${output}".to_string(),
             builtin: true,
         },
     ]
@@ -1380,5 +1392,22 @@ mod tests {
             settings.post_process_selected_prompt_id,
             Some("builtin_bullets".to_string())
         );
+    }
+
+    #[test]
+    fn ensure_defaults_seeds_tone_prompts() {
+        // Simulate an install predating the tone prompts.
+        let mut settings = get_default_settings();
+        settings
+            .post_process_prompts
+            .retain(|p| p.id != "builtin_formal" && p.id != "builtin_casual");
+        ensure_post_process_defaults(&mut settings);
+        let ids: Vec<&str> = settings
+            .post_process_prompts
+            .iter()
+            .map(|p| p.id.as_str())
+            .collect();
+        assert!(ids.contains(&"builtin_formal"));
+        assert!(ids.contains(&"builtin_casual"));
     }
 }
