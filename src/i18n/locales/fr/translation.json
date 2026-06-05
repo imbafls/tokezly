@@ -396,6 +396,10 @@
           "placeholderWithOptions": "Rechercher ou sélectionner un modèle",
           "placeholderNoOptions": "Tapez un nom de modèle",
           "refreshModels": "Actualiser les modèles"
+        },
+        "freeCloud": {
+          "note": "Free cloud rewrites — no key or local model needed. Your text is sent to a free cloud service that may use it to improve their models.",
+          "getKey": "Get a free key"
         }
       },
       "prompts": {

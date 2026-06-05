@@ -31,6 +31,17 @@ pub const CLAUDE_CODE_PROVIDER_ID: &str = "claude_code";
 /// quality/latency balance for a dictation rewrite. Users can change it.
 pub const CLAUDE_CODE_DEFAULT_MODEL_ID: &str = "sonnet";
 
+/// Id of the optional "free cloud" refinement provider — Google Gemini via its
+/// OpenAI-compatible endpoint (so it reuses the `llm_client` HTTP path). Surfaced
+/// under a neutral label ("Free Cloud") with a privacy note in the settings UI;
+/// it is an explicit opt-in, never the default. The key is per-user, or baked
+/// from `TOKEZLY_GEMINI_API_KEY` at build time for a zero-setup default build.
+pub const GEMINI_PROVIDER_ID: &str = "gemini";
+
+/// Default Gemini model for rewrites: the latest fast model. Flash fits the short
+/// cleanup task best (Pro is slower and unnecessary). Users can change it.
+pub const GEMINI_DEFAULT_MODEL_ID: &str = "gemini-3.5-flash";
+
 /// Id of the built-in "clean" prompt. This is the always-on auto-polish prompt
 /// applied to plain dictation when the master AI toggle (`post_process_enabled`)
 /// is on. Prompt mode (the explicit binding) uses `post_process_selected_prompt_id`
@@ -606,6 +617,18 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             models_endpoint: None,
             supports_structured_output: false,
         },
+        // Optional "free cloud" engine: Google Gemini via its OpenAI-compatible
+        // endpoint. Labelled neutrally; the privacy note (free tier may be used by
+        // Google to improve their models) lives in the settings UI. Key is
+        // per-user or baked from TOKEZLY_GEMINI_API_KEY (see baked_default_api_key).
+        PostProcessProvider {
+            id: GEMINI_PROVIDER_ID.to_string(),
+            label: "Free Cloud".to_string(),
+            base_url: "https://generativelanguage.googleapis.com/v1beta/openai".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: Some("/models".to_string()),
+            supports_structured_output: false,
+        },
         PostProcessProvider {
             id: "openai".to_string(),
             label: "OpenAI".to_string(),
@@ -713,6 +736,22 @@ fn default_model_for_provider(provider_id: &str) -> String {
     if provider_id == CLAUDE_CODE_PROVIDER_ID {
         return CLAUDE_CODE_DEFAULT_MODEL_ID.to_string();
     }
+    if provider_id == GEMINI_PROVIDER_ID {
+        return GEMINI_DEFAULT_MODEL_ID.to_string();
+    }
+    String::new()
+}
+
+/// The API key a provider should default to. Empty for every provider (users
+/// paste their own), except the free-cloud provider, which can carry a key baked
+/// from `TOKEZLY_GEMINI_API_KEY` at build time (see build.rs) so a default build
+/// works with no per-user setup. Empty when no key was baked.
+fn baked_default_api_key(provider_id: &str) -> String {
+    if provider_id == GEMINI_PROVIDER_ID {
+        return option_env!("TOKEZLY_GEMINI_API_KEY")
+            .unwrap_or("")
+            .to_string();
+    }
     String::new()
 }
 
@@ -772,11 +811,25 @@ fn ensure_post_process_defaults(settings: &mut AppSettings) -> bool {
             }
         }
 
-        if !settings.post_process_api_keys.contains_key(&provider.id) {
-            settings
-                .post_process_api_keys
-                .insert(provider.id.clone(), String::new());
-            changed = true;
+        // Default each provider's key to empty; the free-cloud provider can carry
+        // a key baked from TOKEZLY_GEMINI_API_KEY so a default build works with no
+        // per-user setup. Self-heal an empty key to the baked one, but never
+        // overwrite a key the user has entered.
+        let baked = baked_default_api_key(&provider.id);
+        match settings.post_process_api_keys.get(&provider.id) {
+            None => {
+                settings
+                    .post_process_api_keys
+                    .insert(provider.id.clone(), baked);
+                changed = true;
+            }
+            Some(existing) if existing.is_empty() && !baked.is_empty() => {
+                settings
+                    .post_process_api_keys
+                    .insert(provider.id.clone(), baked);
+                changed = true;
+            }
+            _ => {}
         }
 
         let default_model = default_model_for_provider(&provider.id);

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { listen } from "@tauri-apps/api/event";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import {
   CheckCircle2,
   Download,
@@ -62,6 +63,19 @@ const PostProcessingSettingsApiComponent: React.FC = () => {
           />
         </div>
       </SettingContainer>
+
+      {state.selectedProviderId === "gemini" && (
+        <Alert variant="info" contained>
+          {t("settings.postProcessing.api.freeCloud.note")}{" "}
+          <button
+            type="button"
+            onClick={() => openUrl("https://aistudio.google.com/apikey")}
+            className="underline"
+          >
+            {t("settings.postProcessing.api.freeCloud.getKey")}
+          </button>
+        </Alert>
+      )}
 
       {state.isAppleProvider ? (
         state.appleIntelligenceUnavailable ? (

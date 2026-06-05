@@ -39,6 +39,11 @@ const CLAUDE_CODE_PROVIDER_ID = "claude_code";
 // Haiku leads since it's the fastest and a good fit for the short rewrite task.
 const CLAUDE_CODE_MODELS = ["haiku", "sonnet", "opus"];
 
+const GEMINI_PROVIDER_ID = "gemini";
+// Seed the free-cloud (Gemini) model choices so the picker works before any
+// /models fetch. Flash leads: fastest and ideal for the short cleanup rewrite.
+const GEMINI_MODELS = ["gemini-3.5-flash", "gemini-2.5-flash-lite"];
+
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
     settings,
@@ -196,6 +201,9 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     // (Haiku first: fastest, ideal for the short cleanup rewrite).
     if (selectedProviderId === CLAUDE_CODE_PROVIDER_ID) {
       for (const m of CLAUDE_CODE_MODELS) upsert(m);
+    }
+    if (selectedProviderId === GEMINI_PROVIDER_ID) {
+      for (const m of GEMINI_MODELS) upsert(m);
     }
 
     // Add available models from API
