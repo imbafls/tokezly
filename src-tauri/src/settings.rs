@@ -37,6 +37,25 @@ pub const CLAUDE_CODE_DEFAULT_MODEL_ID: &str = "sonnet";
 /// instead.
 pub const CLEAN_PROMPT_ID: &str = "default_improve_transcriptions";
 
+/// The current text of the built-in "clean" prompt. Kept as a single source of
+/// truth so `default_post_process_prompts` (fresh installs), the one-time
+/// `upgrade_clean_prompt` migration (existing installs), and the on-device
+/// verification test all use the exact same instruction.
+///
+/// Besides plain cleanup it asks the model to turn an unmistakable dictated
+/// enumeration ("one, two, three" / "first, second, third") into a list,
+/// numbered when the speaker counted and bulleted when they did not — while
+/// leaving ordinary prose untouched. The trailing `${output}` placeholder is
+/// required by the legacy inline cloud path (`actions::post_process_transcription`);
+/// the on-device and structured paths strip it via `build_system_prompt`.
+pub(crate) const CLEAN_PROMPT_TEXT: &str = "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation errors\n2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)\n3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)\n4. Remove filler words (um, uh, like as filler)\n5. Keep the language in the original version (if it was french, keep it in french for example)\n6. If the speaker clearly dictates a sequence of separate items or steps (signalled by counting or ordinals such as one, two, three, or first, second, third, or by point one, point two), format those items as a list with one item per line and drop the spoken enumeration words. Use a numbered list (1., 2., 3.) when they counted or used ordinals; use a bulleted list (each line starting with - ) when they listed items with no inherent order. Only do this when the enumeration is unmistakable; if words like first or next are just ordinary narration, keep the text as flowing prose.\n\nPreserve the exact meaning and wording. Do not paraphrase, add, or remove content; the only restructuring allowed is turning a dictated enumeration into the list described above.\n\nExample. This dictation:\nfirst set up the database second add the login page and third write the tests\nbecomes:\n1. Set up the database\n2. Add the login page\n3. Write the tests\n\nReturn only the cleaned transcript.\n\nTranscript:\n${output}";
+
+/// The original built-in clean prompt (pre-list-formatting). Used only by
+/// `upgrade_clean_prompt` to recognise an install whose clean prompt is still
+/// the untouched factory default, so the upgrade never clobbers a prompt the
+/// user has edited.
+const LEGACY_CLEAN_PROMPT_V1: &str = "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation errors\n2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)\n3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)\n4. Remove filler words (um, uh, like as filler)\n5. Keep the language in the original version (if it was french, keep it in french for example)\n\nPreserve exact meaning and word order. Do not paraphrase or reorder content.\n\nReturn only the cleaned transcript.\n\nTranscript:\n${output}";
+
 #[derive(Serialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum LogLevel {
@@ -712,7 +731,7 @@ fn default_post_process_prompts() -> Vec<LLMPrompt> {
     vec![LLMPrompt {
         id: CLEAN_PROMPT_ID.to_string(),
         name: "Improve Transcriptions".to_string(),
-        prompt: "Clean this transcript:\n1. Fix spelling, capitalization, and punctuation errors\n2. Convert number words to digits (twenty-five → 25, ten percent → 10%, five dollars → $5)\n3. Replace spoken punctuation with symbols (period → ., comma → ,, question mark → ?)\n4. Remove filler words (um, uh, like as filler)\n5. Keep the language in the original version (if it was french, keep it in french for example)\n\nPreserve exact meaning and word order. Do not paraphrase or reorder content.\n\nReturn only the cleaned transcript.\n\nTranscript:\n${output}".to_string(),
+        prompt: CLEAN_PROMPT_TEXT.to_string(),
     }]
 }
 
@@ -817,6 +836,30 @@ fn migrate_unconfigured_cloud_to_on_device(settings: &mut AppSettings) -> bool {
         settings.post_process_provider_id = ON_DEVICE_PROVIDER_ID.to_string();
     }
     true
+}
+
+/// One-time, self-healing upgrade of the built-in clean prompt.
+///
+/// The clean prompt lives in the user's settings store (seeded at first run),
+/// so a code-only change to `CLEAN_PROMPT_TEXT` never reaches an existing
+/// install. This refreshes the stored prompt to the current built-in text, but
+/// *only* when it still matches the previous factory default — an install whose
+/// clean prompt the user has edited keeps their version untouched. Idempotent:
+/// once upgraded the text no longer matches `LEGACY_CLEAN_PROMPT_V1`, so it does
+/// not run again.
+fn upgrade_clean_prompt(settings: &mut AppSettings) -> bool {
+    if let Some(prompt) = settings
+        .post_process_prompts
+        .iter_mut()
+        .find(|p| p.id == CLEAN_PROMPT_ID)
+    {
+        if prompt.prompt == LEGACY_CLEAN_PROMPT_V1 && prompt.prompt != CLEAN_PROMPT_TEXT {
+            debug!("Upgrading built-in clean prompt to the list-aware version");
+            prompt.prompt = CLEAN_PROMPT_TEXT.to_string();
+            return true;
+        }
+    }
+    false
 }
 
 pub const SETTINGS_STORE_PATH: &str = "settings_store.json";
@@ -993,6 +1036,7 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
 
     let mut changed = ensure_post_process_defaults(&mut settings);
     changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
+    changed |= upgrade_clean_prompt(&mut settings);
     if changed {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }
@@ -1019,6 +1063,7 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
 
     let mut changed = ensure_post_process_defaults(&mut settings);
     changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
+    changed |= upgrade_clean_prompt(&mut settings);
     if changed {
         store.set("settings", serde_json::to_value(&settings).unwrap());
     }

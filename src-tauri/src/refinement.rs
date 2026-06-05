@@ -398,6 +398,67 @@ mod tests {
         assert!(!out.trim().is_empty(), "output must be non-empty");
     }
 
+    /// On-device proof that the list-aware clean prompt turns a dictated
+    /// enumeration into a formatted list. Ignored by default (loads ~1.6 GB of
+    /// real weights). Run explicitly:
+    ///
+    /// ```text
+    /// cargo test --lib refinement::tests::on_device_list_formatting_smoke -- --ignored --nocapture
+    /// ```
+    #[test]
+    #[ignore]
+    fn on_device_list_formatting_smoke() {
+        let models_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("crate parent")
+            .join("local")
+            .join("models");
+        std::fs::create_dir_all(&models_dir).expect("create models dir");
+
+        let model_path = models_dir.join(DEFAULT_MODEL_FILENAME);
+        if !model_path.is_file() {
+            eprintln!("Model missing; downloading {} ...", DEFAULT_MODEL_URL);
+            download_blocking(DEFAULT_MODEL_URL, &model_path).expect("download model");
+        }
+
+        let engine = OnDeviceEngine::new(models_dir);
+
+        // The real shipped clean prompt, with the `${output}` placeholder stripped
+        // exactly as `actions::build_system_prompt` does for the on-device path.
+        let system_prompt = crate::settings::CLEAN_PROMPT_TEXT
+            .replace("${output}", "")
+            .trim()
+            .to_string();
+        // A messy, run-on dictation of three ordered points (no list markers in).
+        let messy = "okay so first we need to fix the login bug um second uh we should add the csv export feature and then third we have to write some tests for the payment flow";
+
+        let out = engine
+            .refine(&system_prompt, messy)
+            .expect("refine should not error")
+            .expect("model present so output is Some");
+
+        eprintln!("\n===== ON-DEVICE LIST SMOKE =====");
+        eprintln!("INPUT : {}", messy);
+        eprintln!("OUTPUT:\n{}", out);
+        eprintln!("================================\n");
+
+        let list_lines = out
+            .lines()
+            .filter(|l| {
+                let t = l.trim_start();
+                t.starts_with("- ")
+                    || t.starts_with("* ")
+                    || (t.chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false)
+                        && (t.contains(". ") || t.contains(") ")))
+            })
+            .count();
+        assert!(
+            list_lines >= 2,
+            "expected the enumerated dictation to become a list (>=2 list lines), got:\n{}",
+            out
+        );
+    }
+
     /// Minimal blocking downloader for the test (no tokio runtime needed here).
     fn download_blocking(url: &str, target: &std::path::Path) -> Result<(), String> {
         use std::io::Read;
