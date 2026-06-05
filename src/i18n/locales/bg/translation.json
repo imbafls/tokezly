@@ -15,7 +15,8 @@
     "postProcessing": "Постобработка",
     "history": "История",
     "debug": "Отстраняване",
-    "about": "За приложението"
+    "about": "За приложението",
+    "appearance": "Външен вид"
   },
   "onboarding": {
     "subtitle": "За да започнете, изберете модел за транскрипция",
@@ -437,6 +438,13 @@
         "downloading": "Изтегляне… {{percent}}%",
         "ready": "Моделът е готов",
         "error": "Изтеглянето е неуспешно. Проверете връзката си и опитайте отново."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "Високопроизводително изпълнение на автоматичния модел за разпознаване на реч Whisper на OpenAI",
           "details": "Tokezly използва Whisper.cpp за бързо локално реч-към-текст. Благодарности на Georgi Gerganov и сътрудниците за отличната работа."
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "Интерфейс"
       }
     }
   },

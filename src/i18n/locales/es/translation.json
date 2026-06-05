@@ -15,7 +15,8 @@
     "postProcessing": "Post Proceso",
     "history": "Historial",
     "debug": "Depuración",
-    "about": "Acerca de"
+    "about": "Acerca de",
+    "appearance": "Apariencia"
   },
   "onboarding": {
     "subtitle": "Para comenzar, elige un modelo de transcripción",
@@ -437,6 +438,13 @@
         "downloading": "Descargando… {{percent}} %",
         "ready": "Modelo listo",
         "error": "Error en la descarga. Comprueba tu conexión e inténtalo de nuevo."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "Inferencia de alto rendimiento del modelo de reconocimiento automático de voz Whisper de OpenAI",
           "details": "Tokezly usa Whisper.cpp para procesamiento de voz a texto rápido y local. Gracias al increíble trabajo de Georgi Gerganov y colaboradores."
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "Interfaz"
       }
     }
   },

@@ -15,7 +15,8 @@
     "postProcessing": "AI Rewrite",
     "history": "History",
     "debug": "Debug",
-    "about": "About"
+    "about": "About",
+    "appearance": "Appearance"
   },
   "onboarding": {
     "subtitle": "To get started, choose a transcription model",
@@ -437,6 +438,13 @@
         "cancel": "Cancel",
         "selectToEdit": "Select a prompt above to view and edit its details.",
         "createFirst": "Click 'Create New Prompt' above to create your first post-processing prompt."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "High-performance inference of OpenAI's Whisper automatic speech recognition model",
           "details": "Tokezly uses Whisper.cpp for fast, local speech-to-text processing. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "Interface"
       }
     }
   },

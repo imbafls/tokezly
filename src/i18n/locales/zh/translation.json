@@ -15,7 +15,8 @@
     "postProcessing": "后处理",
     "history": "历史记录",
     "debug": "调试",
-    "about": "关于"
+    "about": "关于",
+    "appearance": "外观"
   },
   "onboarding": {
     "subtitle": "请选择一个转录模型以开始使用",
@@ -437,6 +438,13 @@
         "downloading": "正在下载… {{percent}}%",
         "ready": "模型已就绪",
         "error": "下载失败。请检查网络连接后重试。"
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "OpenAI Whisper 自动语音识别模型的高性能推理",
           "details": "Tokezly 使用 Whisper.cpp 进行快速的本地语音转文字处理。感谢 Georgi Gerganov 和贡献者们的出色工作。"
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "界面"
       }
     }
   },

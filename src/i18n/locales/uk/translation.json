@@ -15,7 +15,8 @@
     "postProcessing": "Постобробка",
     "history": "Історія",
     "debug": "Дебаг",
-    "about": "Інфо"
+    "about": "Інфо",
+    "appearance": "Вигляд"
   },
   "onboarding": {
     "subtitle": "Для початку оберіть модель транскрипції",
@@ -437,6 +438,13 @@
         "downloading": "Завантаження… {{percent}}%",
         "ready": "Модель готова",
         "error": "Не вдалося завантажити. Перевірте з’єднання та повторіть спробу."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "Високопродуктивний інференс моделі автоматичного розпізнавання мовлення Whisper від OpenAI",
           "details": "Tokezly використовує Whisper.cpp для швидкої локальної обробки мовлення в текст. Дякуємо за чудову роботу Георгію Герганову та контриб'юторам."
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "Інтерфейс"
       }
     }
   },

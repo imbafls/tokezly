@@ -15,7 +15,8 @@
     "postProcessing": "後処理",
     "history": "履歴",
     "debug": "デバッグ",
-    "about": "概要"
+    "about": "概要",
+    "appearance": "外観"
   },
   "onboarding": {
     "subtitle": "開始するには、文字起こしモデルを選択してください",
@@ -437,6 +438,13 @@
         "downloading": "ダウンロード中… {{percent}}%",
         "ready": "モデルの準備完了",
         "error": "ダウンロードに失敗しました。接続を確認して再試行してください。"
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "OpenAIのWhisper自動音声認識モデルの高性能推論",
           "details": "Tokezlyは高速でローカルな音声からテキストへの変換にWhisper.cppを使用しています。Georgi Gerganov氏と貢献者の皆様の素晴らしい仕事に感謝します。"
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "インターフェース"
       }
     }
   },

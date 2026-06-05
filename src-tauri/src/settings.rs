@@ -19,6 +19,18 @@ pub const ON_DEVICE_PROVIDER_ID: &str = "on_device";
 /// filename the engine loads from the app-data `models/` dir.
 pub const ON_DEVICE_DEFAULT_MODEL_ID: &str = "gemma-2-2b-it-Q4_K_M.gguf";
 
+/// Id of the provider that routes refinement through the user's locally-installed,
+/// already-signed-in Claude Code CLI (`claude -p`). It uses their Claude
+/// subscription auth — no API key. Selecting this provider runs the CLI as a
+/// subprocess (see `crate::actions::refine_via_claude_code`) rather than issuing
+/// a direct HTTP request.
+pub const CLAUDE_CODE_PROVIDER_ID: &str = "claude_code";
+
+/// Default `--model` alias passed to `claude -p` for the Claude Code provider.
+/// Empty would let Claude Code pick its own default; sonnet is a good
+/// quality/latency balance for a dictation rewrite. Users can change it.
+pub const CLAUDE_CODE_DEFAULT_MODEL_ID: &str = "sonnet";
+
 /// Id of the built-in "clean" prompt. This is the always-on auto-polish prompt
 /// applied to plain dictation when the master AI toggle (`post_process_enabled`)
 /// is on. Prompt mode (the explicit binding) uses `post_process_selected_prompt_id`
@@ -564,6 +576,17 @@ fn default_post_process_providers() -> Vec<PostProcessProvider> {
             models_endpoint: None,
             supports_structured_output: false,
         },
+        // Routes through the user's local Claude Code CLI on their subscription —
+        // no API key. The base_url is a sentinel; the rewrite path detects this
+        // provider id and spawns `claude -p` instead of issuing an HTTP request.
+        PostProcessProvider {
+            id: CLAUDE_CODE_PROVIDER_ID.to_string(),
+            label: "Claude (via Claude Code)".to_string(),
+            base_url: "claude-code://local".to_string(),
+            allow_base_url_edit: false,
+            models_endpoint: None,
+            supports_structured_output: false,
+        },
         PostProcessProvider {
             id: "openai".to_string(),
             label: "OpenAI".to_string(),
@@ -667,6 +690,9 @@ fn default_model_for_provider(provider_id: &str) -> String {
     }
     if provider_id == ON_DEVICE_PROVIDER_ID {
         return ON_DEVICE_DEFAULT_MODEL_ID.to_string();
+    }
+    if provider_id == CLAUDE_CODE_PROVIDER_ID {
+        return CLAUDE_CODE_DEFAULT_MODEL_ID.to_string();
     }
     String::new()
 }
@@ -780,6 +806,7 @@ fn migrate_unconfigured_cloud_to_on_device(settings: &mut AppSettings) -> bool {
         .map(|key| !key.is_empty())
         .unwrap_or(false);
     let is_local_choice = selected == ON_DEVICE_PROVIDER_ID
+        || selected == CLAUDE_CODE_PROVIDER_ID
         || selected == "custom"
         || selected == APPLE_INTELLIGENCE_PROVIDER_ID;
     if !is_local_choice && !configured {

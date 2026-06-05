@@ -10,6 +10,7 @@ type PostProcessProviderState = {
   selectedProvider: PostProcessProvider | undefined;
   isCustomProvider: boolean;
   isAppleProvider: boolean;
+  isLocalProvider: boolean;
   appleIntelligenceUnavailable: boolean;
   baseUrl: string;
   handleBaseUrlChange: (value: string) => void;
@@ -29,6 +30,9 @@ type PostProcessProviderState = {
 };
 
 const APPLE_PROVIDER_ID = "apple_intelligence";
+// Local providers run on-device or via the user's installed Claude Code — they
+// take no API key or base URL, so those fields are hidden for them.
+const LOCAL_PROVIDER_IDS = ["on_device", "claude_code"];
 
 export const usePostProcessProviderState = (): PostProcessProviderState => {
   const {
@@ -164,7 +168,9 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   );
 
   const handleRefreshModels = useCallback(() => {
-    if (isAppleProvider) return;
+    // Local providers (on-device, Claude Code) have no remote model list to
+    // fetch — skip the backend round-trip that would just error on a missing key.
+    if (isAppleProvider || LOCAL_PROVIDER_IDS.includes(selectedProviderId)) return;
     void fetchPostProcessModels(selectedProviderId);
   }, [fetchPostProcessModels, isAppleProvider, selectedProviderId]);
 
@@ -206,6 +212,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
   );
 
   const isCustomProvider = selectedProvider?.id === "custom";
+  const isLocalProvider = LOCAL_PROVIDER_IDS.includes(selectedProvider?.id ?? "");
 
   // No automatic fetching - user must click refresh button
 
@@ -215,6 +222,7 @@ export const usePostProcessProviderState = (): PostProcessProviderState => {
     selectedProvider,
     isCustomProvider,
     isAppleProvider,
+    isLocalProvider,
     appleIntelligenceUnavailable,
     baseUrl,
     handleBaseUrlChange,

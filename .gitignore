@@ -43,6 +43,9 @@ blob-report/
 # Nix build output
 result
 
+# Claude Code project guide — local-only, keeps the repo history human-authored
+/CLAUDE.md
+
 # Local-only workspace — machine scratch, model weights, personal overrides (never committed)
 /local/
 

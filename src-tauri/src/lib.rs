@@ -446,6 +446,7 @@ pub fn run(cli_args: CliArgs) {
             helpers::clamshell::is_laptop,
             actions::retry_last_dictation,
             actions::dismiss_overlay,
+            actions::is_claude_code_available,
         ])
         .events(collect_events![managers::history::HistoryUpdatePayload,]);
 

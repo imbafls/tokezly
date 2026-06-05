@@ -7,8 +7,8 @@ use crate::managers::history::HistoryManager;
 use crate::managers::transcription::TranscriptionManager;
 use crate::refinement::OnDeviceEngine;
 use crate::settings::{
-    get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID, CLEAN_PROMPT_ID,
-    ON_DEVICE_PROVIDER_ID,
+    get_settings, AppSettings, APPLE_INTELLIGENCE_PROVIDER_ID, CLAUDE_CODE_PROVIDER_ID,
+    CLEAN_PROMPT_ID, ON_DEVICE_PROVIDER_ID,
 };
 use crate::shortcut;
 use crate::tray::{change_tray_icon, TrayIconState};
@@ -195,6 +195,14 @@ async fn post_process_transcription(
         .get(&provider.id)
         .cloned()
         .unwrap_or_default();
+
+    // Claude Code (local) path: spawn the user's signed-in `claude` CLI, which
+    // runs on their Claude subscription (no API key). Degrades to verbatim on any
+    // failure. Checked before the empty-model guard so it can use Claude's own
+    // default model when none is configured.
+    if provider.id == CLAUDE_CODE_PROVIDER_ID {
+        return refine_via_claude_code(&prompt, transcription, &model).await;
+    }
 
     if model.trim().is_empty() {
         debug!(
@@ -448,6 +456,267 @@ async fn refine_on_device(
             None
         }
     }
+}
+
+/// Home directory of the current user, used to locate the per-user Claude Code
+/// install and credentials.
+fn home_dir() -> Option<std::path::PathBuf> {
+    #[cfg(target_os = "windows")]
+    {
+        std::env::var_os("USERPROFILE").map(std::path::PathBuf::from)
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        std::env::var_os("HOME").map(std::path::PathBuf::from)
+    }
+}
+
+/// Locate the Claude Code CLI binary. Checks the official per-user install dir
+/// (`~/.local/bin`) first, then scans PATH. Returns a concrete, existing path or
+/// `None` if Claude Code is not installed.
+pub(crate) fn find_claude_binary() -> Option<std::path::PathBuf> {
+    let names: &[&str] = if cfg!(target_os = "windows") {
+        &["claude.exe", "claude.cmd", "claude"]
+    } else {
+        &["claude"]
+    };
+
+    if let Some(home) = home_dir() {
+        let bin = home.join(".local").join("bin");
+        for name in names {
+            let candidate = bin.join(name);
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path) {
+            for name in names {
+                let candidate = dir.join(name);
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Whether the Claude Code provider is usable: the `claude` binary is present and
+/// there is a stored login (`~/.claude/.credentials.json`). Surfaced in the AI
+/// Rewrite UI so the user knows whether the option will work.
+#[tauri::command]
+#[specta::specta]
+pub fn is_claude_code_available() -> bool {
+    if find_claude_binary().is_none() {
+        return false;
+    }
+    // On macOS the login is kept in the system Keychain rather than a file, so a
+    // file check would wrongly report "not signed in"; trust the CLI to degrade
+    // gracefully there (the rewrite falls back to verbatim if it isn't logged in).
+    #[cfg(target_os = "macos")]
+    {
+        true
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        home_dir()
+            .map(|h| h.join(".claude").join(".credentials.json").is_file())
+            .unwrap_or(false)
+    }
+}
+
+/// Refine via the locally-installed Claude Code CLI (`claude -p`), which runs on
+/// the user's Claude subscription auth — no API key. The transcript is sent as
+/// the prompt and the clean instruction as the system prompt; the JSON `result`
+/// is parsed out. Degrades to verbatim (`None`) on any failure: binary missing,
+/// not signed in, non-zero exit, an error result, or a parse error.
+async fn refine_via_claude_code(
+    prompt: &str,
+    transcription: &str,
+    model: &str,
+) -> Option<String> {
+    let Some(binary) = find_claude_binary() else {
+        debug!("Claude Code provider selected but the `claude` binary was not found; keeping verbatim");
+        return None;
+    };
+
+    let system_prompt = build_system_prompt(prompt);
+    let user_text = transcription.to_string();
+    let model = model.trim().to_string();
+
+    let result =
+        tauri::async_runtime::spawn_blocking(move || run_claude_cli(&binary, &system_prompt, &user_text, &model))
+            .await;
+
+    match result {
+        Ok(Some(text)) => {
+            let cleaned = strip_invisible_chars(&text);
+            if cleaned.trim().is_empty() {
+                debug!("Claude Code returned empty output; keeping verbatim transcript");
+                return None;
+            }
+            debug!(
+                "Claude Code refinement succeeded. Output length: {} chars",
+                cleaned.len()
+            );
+            Some(cleaned)
+        }
+        Ok(None) => {
+            debug!("Claude Code refinement produced no usable result; keeping verbatim transcript");
+            None
+        }
+        Err(e) => {
+            error!("Claude Code refinement task panicked: {}. Falling back to verbatim.", e);
+            None
+        }
+    }
+}
+
+/// Blocking helper: run `claude -p` and return the rewritten text, or `None` on
+/// any failure. Runs in a neutral working directory and strips
+/// `ANTHROPIC_API_KEY`/`ANTHROPIC_AUTH_TOKEN` from the child env so it always
+/// uses the subscription login rather than pay-as-you-go API billing.
+fn run_claude_cli(
+    binary: &std::path::Path,
+    system_prompt: &str,
+    transcript: &str,
+    model: &str,
+) -> Option<String> {
+    use std::process::{Command, Stdio};
+    use std::time::{Duration, Instant};
+
+    // Hard ceiling so a hung CLI (network stall, unexpected prompt) can never
+    // stall the dictation pipeline in "Processing" forever.
+    const TIMEOUT: Duration = Duration::from_secs(60);
+
+    // On Windows an npm-installed `claude.cmd` is a batch shim that CreateProcess
+    // can't exec directly — route those through cmd.exe. A native `claude.exe`
+    // (the installer's default, and what's on this machine) is spawned directly.
+    #[cfg(target_os = "windows")]
+    let is_cmd_shim = binary
+        .extension()
+        .map(|e| e.eq_ignore_ascii_case("cmd"))
+        .unwrap_or(false);
+    #[cfg(target_os = "windows")]
+    let mut cmd = if is_cmd_shim {
+        let mut c = Command::new("cmd");
+        c.arg("/C").arg(binary);
+        c
+    } else {
+        Command::new(binary)
+    };
+    #[cfg(not(target_os = "windows"))]
+    let mut cmd = Command::new(binary);
+
+    cmd.arg("-p")
+        .arg(transcript)
+        .arg("--output-format")
+        .arg("json")
+        .arg("--system-prompt")
+        .arg(system_prompt)
+        // Keep it a fast, deterministic one-shot rewrite: skip the user's MCP
+        // servers, don't persist a session, and deny every file/exec/network
+        // tool — the rewrite only needs the model's text completion.
+        .arg("--strict-mcp-config")
+        .arg("--no-session-persistence")
+        .arg("--disallowedTools")
+        .arg("Bash")
+        .arg("Edit")
+        .arg("Write")
+        .arg("Read")
+        .arg("WebFetch")
+        .arg("WebSearch");
+    if !model.is_empty() {
+        cmd.arg("--model").arg(model);
+    }
+
+    cmd.current_dir(std::env::temp_dir())
+        .env_remove("ANTHROPIC_API_KEY")
+        .env_remove("ANTHROPIC_AUTH_TOKEN")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null());
+
+    // Don't flash a console window on Windows.
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+
+    let mut child = match cmd.spawn() {
+        Ok(child) => child,
+        Err(e) => {
+            warn!("Failed to spawn `claude`: {}", e);
+            return None;
+        }
+    };
+
+    // Poll for completion with a deadline; kill the child if it overruns. The CLI
+    // emits a single small JSON object, so the stdout pipe never fills while we
+    // wait, and reading it after exit can't deadlock.
+    let deadline = Instant::now() + TIMEOUT;
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {
+                if Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    warn!("`claude` timed out after {:?}; falling back to verbatim", TIMEOUT);
+                    return None;
+                }
+                std::thread::sleep(Duration::from_millis(150));
+            }
+            Err(e) => {
+                warn!("Error waiting on `claude`: {}", e);
+                return None;
+            }
+        }
+    }
+
+    let output = match child.wait_with_output() {
+        Ok(output) => output,
+        Err(e) => {
+            warn!("Failed to read `claude` output: {}", e);
+            return None;
+        }
+    };
+
+    if !output.status.success() {
+        warn!("`claude` exited unsuccessfully: {}", output.status);
+        return None;
+    }
+
+    let parsed: serde_json::Value = match serde_json::from_slice(&output.stdout) {
+        Ok(value) => value,
+        Err(e) => {
+            warn!("Failed to parse `claude` JSON output: {}", e);
+            return None;
+        }
+    };
+
+    if parsed
+        .get("is_error")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false)
+    {
+        warn!(
+            "`claude` returned an error result: {}",
+            parsed.get("result").and_then(|v| v.as_str()).unwrap_or("unknown")
+        );
+        return None;
+    }
+
+    parsed
+        .get("result")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
 }
 
 async fn maybe_convert_chinese_variant(

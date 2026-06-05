@@ -861,6 +861,9 @@ async retryLastDictation() : Promise<Result<null, string>> {
 },
 async dismissOverlay() : Promise<void> {
     await TAURI_INVOKE("dismiss_overlay");
+},
+async isClaudeCodeAvailable() : Promise<boolean> {
+    return await TAURI_INVOKE("is_claude_code_available");
 }
 }
 

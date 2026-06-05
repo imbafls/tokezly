@@ -15,7 +15,8 @@
     "postProcessing": "後處理",
     "history": "歷史紀錄",
     "debug": "偵錯",
-    "about": "關於"
+    "about": "關於",
+    "appearance": "外觀"
   },
   "onboarding": {
     "subtitle": "首先，請選擇一種模型",
@@ -437,6 +438,13 @@
         "downloading": "正在下載… {{percent}}%",
         "ready": "模型已就緒",
         "error": "下載失敗。請檢查您的連線後再試一次。"
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "針對 OpenAI Whisper 自動語音識別模型的高效能推理引擎",
           "details": "Tokezly 使用 Whisper.cpp 進行快速的本機語音轉文字處理。感謝 Georgi Gerganov 和貢獻者們的傑出工作"
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "介面"
       }
     }
   },

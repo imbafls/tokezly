@@ -15,7 +15,8 @@
     "postProcessing": "Následné zpracování",
     "history": "Historie",
     "debug": "Ladění",
-    "about": "O aplikaci"
+    "about": "O aplikaci",
+    "appearance": "Vzhled"
   },
   "onboarding": {
     "subtitle": "Pro začátek vyberte model pro přepis",
@@ -437,6 +438,13 @@
         "downloading": "Stahování… {{percent}}%",
         "ready": "Model připraven",
         "error": "Stažení selhalo. Zkontrolujte připojení a zkuste to znovu."
+      },
+      "claudeCode": {
+        "title": "Claude Code",
+        "description": "Uses your Claude subscription through your installed Claude Code — no API key. Rewrites take a few seconds.",
+        "unavailable": "Claude Code isn't installed or signed in. Install it and sign in, or pick another engine. Until then, dictation is pasted verbatim.",
+        "ready": "Ready",
+        "notFound": "Not found"
       }
     },
     "history": {
@@ -557,6 +565,11 @@
           "description": "Vysoce výkonné inferenční zpracování modelu automatického rozpoznávání řeči Whisper od OpenAI",
           "details": "Tokezly používá Whisper.cpp pro rychlé lokální zpracování řeči na text. Díky skvělé práci Georgiho Gerganova a přispěvatelů."
         }
+      }
+    },
+    "appearance": {
+      "groups": {
+        "interface": "Rozhraní"
       }
     }
   },
