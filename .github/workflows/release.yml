@@ -1,0 +1,160 @@
+name: Release
+
+# Builds Linux (.deb / .AppImage / .rpm) and Windows (.exe / .msi) bundles and
+# uploads them to a GitHub Release. macOS is intentionally out of scope for now.
+#
+# Manual trigger only: the release tag and name come from the version in
+# src-tauri/tauri.conf.json. Run it from the Actions tab after bumping the
+# version on main. It creates a DRAFT release; publish it once the assets look
+# right. (This never pushes to a branch, so the `main` ruleset is untouched.)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release-id: ${{ steps.create-release.outputs.result }}
+      version: ${{ steps.get-version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from tauri.conf.json
+        id: get-version
+        shell: bash
+        run: |
+          VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | head -1 | cut -d'"' -f4)
+          echo "Tokezly version: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create draft release
+        id: create-release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: `v${{ steps.get-version.outputs.version }}`,
+              name: `Tokezly ${{ steps.get-version.outputs.version }}`,
+              draft: true,
+              prerelease: false,
+              generate_release_notes: true,
+            })
+            return data.id
+
+  build:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            args: "--bundles deb,appimage,rpm"
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    env:
+      # Never compile with -march=native: the runner's CPU features would get
+      # baked in and SIGILL on older user CPUs. whisper.cpp + the on-device LLM
+      # (llama.cpp) build for a generic baseline instead. AVX2/FMA are left at
+      # ggml defaults so the CPU-bound on-device LLM stays reasonably fast on
+      # modern (~2013+) CPUs.
+      GGML_NATIVE: "OFF"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: ${{ matrix.platform }}
+
+      # --- Linux: Tauri/WebKit + audio + X11 system deps, plus gtk-layer-shell
+      #     (the no-focus recording overlay) and AppImage/RPM tooling. ---
+      - name: Install Linux system dependencies
+        if: contains(matrix.platform, 'ubuntu')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
+            libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
+            libgtk-layer-shell0 libgtk-layer-shell-dev \
+            libfuse2 fuse rpm
+
+      - name: Verify gtk-layer-shell present (Linux)
+        if: contains(matrix.platform, 'ubuntu')
+        run: |
+          dpkg-query -W -f='${Status}\n' libgtk-layer-shell0 | grep -q "install ok installed"
+          ldconfig -p | grep -q "libgtk-layer-shell.so.0"
+
+      # whisper-vulkan is our Linux ASR accelerator (Cargo.toml), so the Vulkan
+      # SDK (headers + glslc) is needed at build time and a driver at runtime.
+      - name: Install Vulkan SDK (Linux)
+        if: contains(matrix.platform, 'ubuntu')
+        run: |
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
+          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-jammy.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-jammy.list
+          sudo apt update
+          sudo apt install -y vulkan-sdk mesa-vulkan-drivers
+
+      # The `ort` crate (ONNX Runtime, used by transcribe-rs for the Parakeet /
+      # Canary / Moonshine ASR engines) needs the shared lib on Linux. Pull a
+      # pinned build and bundle it into the .deb so the installed app can load it.
+      # NOTE: AppImage/RPM bundling of this lib is the most likely first-run gap
+      # to iterate on.
+      - name: Provide ONNX Runtime (Linux)
+        if: contains(matrix.platform, 'ubuntu')
+        shell: bash
+        run: |
+          ORT_VERSION="1.24.2"
+          curl -L -o ort.tgz "https://blob.handy.computer/onnxruntime-linux-x86_64-${ORT_VERSION}.tgz"
+          tar xzf ort.tgz
+          ORT_DIR="$(pwd)/onnxruntime-linux-x86_64-${ORT_VERSION}"
+          echo "ORT_LIB_LOCATION=$ORT_DIR/lib" >> "$GITHUB_ENV"
+          echo "ORT_PREFER_DYNAMIC_LINK=1" >> "$GITHUB_ENV"
+          # Resolve symlinks so the bundler ships real files, not broken links.
+          for f in "$ORT_DIR"/lib/libonnxruntime.so*; do
+            if [ -L "$f" ]; then cp -L "$f" "$f.real" && mv "$f.real" "$f"; fi
+          done
+          jq --arg so "$ORT_DIR/lib/libonnxruntime.so" \
+             --arg so1 "$ORT_DIR/lib/libonnxruntime.so.1" \
+             --arg sov "$ORT_DIR/lib/libonnxruntime.so.1.24.2" \
+            '.bundle.linux.deb.files["/usr/lib/libonnxruntime.so"] = $so | .bundle.linux.deb.files["/usr/lib/libonnxruntime.so.1"] = $so1 | .bundle.linux.deb.files["/usr/lib/libonnxruntime.so.1.24.2"] = $sov' \
+            src-tauri/tauri.conf.json > tmp.json && mv tmp.json src-tauri/tauri.conf.json
+
+      # whisper-rs-sys / llama-cpp-sys run cmake builds whose paths exceed the
+      # Windows MAX_PATH (260 chars). Shorten the cargo target dir to avoid it.
+      - name: Shorten build path (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $drive = Split-Path -Qualifier $env:GITHUB_WORKSPACE
+          $targetDir = "$drive\t"
+          New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+          "CARGO_TARGET_DIR=$targetDir" >> $env:GITHUB_ENV
+
+      - name: Install frontend dependencies
+        run: bun install
+
+      - name: Build with Tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release-id }}
+          tagName: v${{ needs.create-release.outputs.version }}
+          releaseName: Tokezly ${{ needs.create-release.outputs.version }}
+          args: ${{ matrix.args }}
