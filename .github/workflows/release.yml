@@ -1,6 +1,6 @@
 name: Release
 
-# Builds Linux (.deb / .AppImage / .rpm) and Windows (.exe / .msi) bundles and
+# Builds Linux (.deb) and Windows (.exe / .msi) bundles and
 # uploads them to a GitHub Release. macOS is intentionally out of scope for now.
 #
 # Manual trigger only: the release tag and name come from the version in
@@ -72,12 +72,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # .deb on 22.04 for broad glibc compatibility; AppImage/RPM on 24.04
-          # where FUSE works for linuxdeploy/appimagetool.
+          # Linux ships .deb only for now. AppImage + RPM don't build on hosted
+          # runners (linuxdeploy fails — tauri-apps/tauri#15106); revisiting is a
+          # Phase-4 backlog item. .deb on ubuntu-22.04 for broad glibc compat.
           - platform: ubuntu-22.04
             args: "--bundles deb"
-          - platform: ubuntu-24.04
-            args: "--bundles appimage,rpm"
           - platform: windows-latest
             args: ""
     runs-on: ${{ matrix.platform }}
@@ -104,7 +103,7 @@ jobs:
           key: ${{ matrix.platform }}
 
       # --- Linux: Tauri/WebKit + audio + X11 system deps, plus gtk-layer-shell
-      #     (the no-focus recording overlay) and AppImage/RPM tooling. ---
+      #     (the no-focus recording overlay). Only the .deb is built. ---
       - name: Install Linux system dependencies
         if: contains(matrix.platform, 'ubuntu')
         run: |
@@ -112,8 +111,7 @@ jobs:
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf \
             libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev \
-            libgtk-layer-shell0 libgtk-layer-shell-dev \
-            libfuse2 fuse rpm
+            libgtk-layer-shell0 libgtk-layer-shell-dev
 
       - name: Verify gtk-layer-shell present (Linux)
         if: contains(matrix.platform, 'ubuntu')
