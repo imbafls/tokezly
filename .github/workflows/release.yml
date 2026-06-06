@@ -72,8 +72,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # .deb on 22.04 for broad glibc compatibility; AppImage/RPM on 24.04
+          # where FUSE works for linuxdeploy/appimagetool.
           - platform: ubuntu-22.04
-            args: "--bundles deb,appimage,rpm"
+            args: "--bundles deb"
+          - platform: ubuntu-24.04
+            args: "--bundles appimage,rpm"
           - platform: windows-latest
             args: ""
     runs-on: ${{ matrix.platform }}
@@ -121,16 +125,6 @@ jobs:
         run: |
           dpkg-query -W -f='${Status}\n' libgtk-layer-shell0 | grep -q "install ok installed"
           ldconfig -p | grep -q "libgtk-layer-shell.so.0"
-
-      # whisper-vulkan is our Linux ASR accelerator (Cargo.toml), so the Vulkan
-      # SDK (headers + glslc) is needed at build time and a driver at runtime.
-      - name: Install Vulkan SDK (Linux)
-        if: contains(matrix.platform, 'ubuntu')
-        run: |
-          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/trusted.gpg.d/lunarg.asc
-          sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.290-jammy.list https://packages.lunarg.com/vulkan/1.3.290/lunarg-vulkan-1.3.290-jammy.list
-          sudo apt update
-          sudo apt install -y vulkan-sdk mesa-vulkan-drivers
 
       # The `ort` crate (ONNX Runtime, used by transcribe-rs for the Parakeet /
       # Canary / Moonshine ASR engines) needs the shared lib on Linux. Pull a
