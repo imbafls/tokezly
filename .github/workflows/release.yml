@@ -36,10 +36,27 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
+            const tag = `v${{ steps.get-version.outputs.version }}`;
+            // Remove any stale DRAFT release for this tag so re-dispatching the
+            // workflow stays clean. This never touches a published release.
+            const existing = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            });
+            for (const r of existing.data) {
+              if (r.tag_name === tag && r.draft) {
+                await github.rest.repos.deleteRelease({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  release_id: r.id,
+                });
+              }
+            }
             const { data } = await github.rest.repos.createRelease({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              tag_name: `v${{ steps.get-version.outputs.version }}`,
+              tag_name: tag,
               name: `Tokezly ${{ steps.get-version.outputs.version }}`,
               draft: true,
               prerelease: false,
@@ -67,6 +84,11 @@ jobs:
       # ggml defaults so the CPU-bound on-device LLM stays reasonably fast on
       # modern (~2013+) CPUs.
       GGML_NATIVE: "OFF"
+      # GitHub runners can't mount FUSE, so the linuxdeploy / appimagetool
+      # AppImages (used to bundle the .AppImage) must extract-and-run instead of
+      # FUSE-mounting, or they fail immediately with "failed to run linuxdeploy".
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      NO_STRIP: "true"
     steps:
       - uses: actions/checkout@v4
 
