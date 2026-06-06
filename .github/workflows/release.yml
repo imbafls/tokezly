@@ -88,11 +88,6 @@ jobs:
       # ggml defaults so the CPU-bound on-device LLM stays reasonably fast on
       # modern (~2013+) CPUs.
       GGML_NATIVE: "OFF"
-      # GitHub runners can't mount FUSE, so the linuxdeploy / appimagetool
-      # AppImages (used to bundle the .AppImage) must extract-and-run instead of
-      # FUSE-mounting, or they fail immediately with "failed to run linuxdeploy".
-      APPIMAGE_EXTRACT_AND_RUN: "1"
-      NO_STRIP: "true"
     steps:
       - uses: actions/checkout@v4
 
