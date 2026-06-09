@@ -403,6 +403,128 @@ impl std::ops::DerefMut for SecretMap {
     }
 }
 
+/// API keys are kept in the OS keychain (Windows Credential Manager), never in
+/// the settings JSON on disk. This module is the only thing that touches the
+/// keychain; a process-lifetime cache keeps the hot `get_settings` path off the
+/// keychain after the first read. Windows-only for now (see Cargo.toml) — macOS
+/// and Linux keep JSON storage until their backends are wired + tested.
+#[cfg(windows)]
+mod key_vault {
+    use once_cell::sync::OnceCell;
+    use std::collections::HashMap;
+    use std::sync::Mutex;
+
+    /// Keychain service (target) name; the account is the provider id.
+    pub(super) const SERVICE: &str = "com.tokezly.app.api_keys";
+
+    /// provider id -> key. An unset provider is cached as "" so it isn't
+    /// re-read from the keychain on every call.
+    static CACHE: OnceCell<Mutex<HashMap<String, String>>> = OnceCell::new();
+
+    fn cache() -> std::sync::MutexGuard<'static, HashMap<String, String>> {
+        CACHE
+            .get_or_init(|| Mutex::new(HashMap::new()))
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+    }
+
+    /// The stored key for a provider, or None when unset. Cache-first.
+    pub(super) fn get(provider: &str) -> Option<String> {
+        if let Some(cached) = cache().get(provider) {
+            return (!cached.is_empty()).then(|| cached.clone());
+        }
+        let value = match keyring::Entry::new(SERVICE, provider) {
+            Ok(entry) => entry.get_password().unwrap_or_default(),
+            Err(_) => String::new(),
+        };
+        cache().insert(provider.to_string(), value.clone());
+        (!value.is_empty()).then_some(value)
+    }
+
+    /// Store (non-empty) or clear (empty) a provider's key. Returns true on
+    /// success so the caller can keep the key in the JSON store if the keychain
+    /// is ever unavailable — a key is never silently dropped.
+    pub(super) fn set(provider: &str, key: &str) -> bool {
+        let entry = match keyring::Entry::new(SERVICE, provider) {
+            Ok(e) => e,
+            Err(_) => return false,
+        };
+        let ok = if key.is_empty() {
+            // Clearing: "no such entry" counts as success (already absent).
+            matches!(
+                entry.delete_credential(),
+                Ok(()) | Err(keyring::Error::NoEntry)
+            )
+        } else {
+            entry.set_password(key).is_ok()
+        };
+        if ok {
+            cache().insert(provider.to_string(), key.to_string());
+        }
+        ok
+    }
+}
+
+/// A clone of `settings` with all API keys removed — safe to serialize to the
+/// on-disk store, since plaintext keys must never touch the disk.
+#[cfg(windows)]
+fn without_api_keys(settings: &AppSettings) -> AppSettings {
+    let mut copy = settings.clone();
+    copy.post_process_api_keys = SecretMap(HashMap::new());
+    copy
+}
+
+/// The settings to persist to the on-disk store: each API key is pushed to the
+/// OS keychain and stripped from the JSON. If a keychain write fails, that key
+/// is kept in the JSON so it is never lost.
+#[cfg(windows)]
+fn settings_for_disk(settings: &AppSettings) -> AppSettings {
+    let mut on_disk = without_api_keys(settings);
+    for (provider, key) in settings.post_process_api_keys.iter() {
+        if !key.is_empty() && !key_vault::set(provider, key) {
+            on_disk
+                .post_process_api_keys
+                .insert(provider.clone(), key.clone());
+        }
+    }
+    on_disk
+}
+
+/// Load API keys from the OS keychain into `settings`, migrating any plaintext
+/// keys still in the JSON store. Returns true when the JSON held plaintext keys,
+/// so the caller re-saves and `settings_for_disk` strips them from disk.
+#[cfg(windows)]
+fn hydrate_api_keys(settings: &mut AppSettings) -> bool {
+    // Keys currently in the JSON (legacy plaintext, or a keychain-unavailable
+    // fallback from a previous save).
+    let mut keys: HashMap<String, String> = settings
+        .post_process_api_keys
+        .iter()
+        .filter(|(_, v)| !v.is_empty())
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    let had_json_keys = !keys.is_empty();
+    // The keychain is authoritative wherever it has an entry.
+    for provider in default_post_process_providers() {
+        if let Some(k) = key_vault::get(&provider.id) {
+            keys.insert(provider.id, k);
+        }
+    }
+    settings.post_process_api_keys = SecretMap(keys);
+    had_json_keys
+}
+
+// Non-Windows: API keys stay in the settings JSON as before (no keychain wired
+// yet), so these are no-ops that preserve current behavior.
+#[cfg(not(windows))]
+fn settings_for_disk(settings: &AppSettings) -> AppSettings {
+    settings.clone()
+}
+#[cfg(not(windows))]
+fn hydrate_api_keys(_settings: &mut AppSettings) -> bool {
+    false
+}
+
 /* still handy for composing the initial JSON in the store ------------- */
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct AppSettings {
@@ -1163,7 +1285,10 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
 
                 if updated {
                     debug!("Settings updated with new bindings");
-                    store.set("settings", serde_json::to_value(&settings).unwrap());
+                    store.set(
+                        "settings",
+                        serde_json::to_value(&settings_for_disk(&settings)).unwrap(),
+                    );
                 }
 
                 settings
@@ -1182,11 +1307,15 @@ pub fn load_or_create_app_settings(app: &AppHandle) -> AppSettings {
         default_settings
     };
 
-    let mut changed = ensure_post_process_defaults(&mut settings);
+    let mut changed = hydrate_api_keys(&mut settings);
+    changed |= ensure_post_process_defaults(&mut settings);
     changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
     changed |= upgrade_clean_prompt(&mut settings);
     if changed {
-        store.set("settings", serde_json::to_value(&settings).unwrap());
+        store.set(
+            "settings",
+            serde_json::to_value(&settings_for_disk(&settings)).unwrap(),
+        );
     }
 
     settings
@@ -1209,11 +1338,15 @@ pub fn get_settings(app: &AppHandle) -> AppSettings {
         default_settings
     };
 
-    let mut changed = ensure_post_process_defaults(&mut settings);
+    let mut changed = hydrate_api_keys(&mut settings);
+    changed |= ensure_post_process_defaults(&mut settings);
     changed |= migrate_unconfigured_cloud_to_on_device(&mut settings);
     changed |= upgrade_clean_prompt(&mut settings);
     if changed {
-        store.set("settings", serde_json::to_value(&settings).unwrap());
+        store.set(
+            "settings",
+            serde_json::to_value(&settings_for_disk(&settings)).unwrap(),
+        );
     }
 
     settings
@@ -1224,7 +1357,10 @@ pub fn write_settings(app: &AppHandle, settings: AppSettings) {
         .store(crate::portable::store_path(SETTINGS_STORE_PATH))
         .expect("Failed to initialize store");
 
-    store.set("settings", serde_json::to_value(&settings).unwrap());
+    store.set(
+        "settings",
+        serde_json::to_value(&settings_for_disk(&settings)).unwrap(),
+    );
 }
 
 pub fn get_bindings(app: &AppHandle) -> HashMap<String, ShortcutBinding> {
@@ -1425,6 +1561,65 @@ mod tests {
             !upgrade_clean_prompt(&mut s),
             "the current factory prompt is a no-op"
         );
+    }
+
+    // --- OS-keychain API-key storage (Windows): plaintext keys must never be
+    // serialized to the on-disk settings store. ---
+
+    #[cfg(windows)]
+    #[test]
+    fn without_api_keys_strips_keys_for_disk() {
+        let mut s = get_default_settings();
+        s.post_process_api_keys
+            .insert("openai".into(), "sk-super-secret-123".into());
+        let on_disk = without_api_keys(&s);
+        assert!(on_disk.post_process_api_keys.is_empty());
+        assert!(
+            !serde_json::to_string(&on_disk)
+                .unwrap()
+                .contains("sk-super-secret-123"),
+            "plaintext key must not appear in the on-disk JSON"
+        );
+        // The in-memory copy is untouched.
+        assert_eq!(
+            s.post_process_api_keys.get("openai").map(String::as_str),
+            Some("sk-super-secret-123")
+        );
+    }
+
+    // Real round-trip through the Windows Credential Manager. Ignored by default
+    // (touches the OS keychain); uses a throwaway provider id so it never
+    // collides with a real provider's key, and cleans up after itself. Run with:
+    //   cargo test --lib settings::tests::api_keys_round_trip_through_keychain -- --ignored
+    #[cfg(windows)]
+    #[test]
+    #[ignore]
+    fn api_keys_round_trip_through_keychain() {
+        let provider = "tokezly_test_provider_delete_me";
+        assert!(key_vault::set(provider, "round-trip-secret"));
+        // Read back via a fresh Entry (bypassing the in-process cache) to prove it
+        // actually persisted to the OS keychain.
+        let fresh = keyring::Entry::new(key_vault::SERVICE, provider)
+            .unwrap()
+            .get_password()
+            .unwrap();
+        assert_eq!(fresh, "round-trip-secret");
+        // settings_for_disk strips it from the on-disk copy (only the throwaway
+        // provider is present, so no real key is touched).
+        let mut s = get_default_settings();
+        s.post_process_api_keys = SecretMap(HashMap::new());
+        s.post_process_api_keys
+            .insert(provider.into(), "round-trip-secret".into());
+        assert!(settings_for_disk(&s)
+            .post_process_api_keys
+            .get(provider)
+            .is_none());
+        // Clean up the throwaway entry.
+        assert!(key_vault::set(provider, ""));
+        assert!(keyring::Entry::new(key_vault::SERVICE, provider)
+            .unwrap()
+            .get_password()
+            .is_err());
     }
 
     #[test]
