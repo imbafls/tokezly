@@ -1352,6 +1352,81 @@ mod tests {
         );
     }
 
+    // --- Clean-prompt regression guards (bug #2: the always-on Clean prompt
+    // must never restructure prose into a list). ---
+
+    fn clean_prompt_of(s: &AppSettings) -> String {
+        s.post_process_prompts
+            .iter()
+            .find(|p| p.id == CLEAN_PROMPT_ID)
+            .expect("clean prompt present")
+            .prompt
+            .clone()
+    }
+
+    fn set_clean_prompt(s: &mut AppSettings, text: &str) {
+        s.post_process_prompts
+            .iter_mut()
+            .find(|p| p.id == CLEAN_PROMPT_ID)
+            .expect("clean prompt present")
+            .prompt = text.to_string();
+    }
+
+    #[test]
+    fn clean_prompt_is_cleanup_only() {
+        // Must explicitly forbid list conversion and must not carry the old
+        // list-formatting directive that caused bug #2.
+        let p = CLEAN_PROMPT_TEXT;
+        assert!(
+            p.contains("never convert it into a list"),
+            "clean prompt must forbid turning prose into a list"
+        );
+        assert!(
+            !p.contains("format those items as a list"),
+            "clean prompt must not instruct list formatting"
+        );
+        assert!(
+            !p.contains("bulleted list"),
+            "clean prompt must not mention bulleted lists"
+        );
+    }
+
+    #[test]
+    fn upgrade_clean_prompt_migrates_both_legacy_factory_prompts() {
+        // The original v1 factory prompt upgrades to the current cleanup-only one.
+        let mut s = get_default_settings();
+        set_clean_prompt(&mut s, LEGACY_CLEAN_PROMPT_V1);
+        assert!(upgrade_clean_prompt(&mut s), "v1 should upgrade");
+        assert_eq!(clean_prompt_of(&s), CLEAN_PROMPT_TEXT);
+
+        // The list-aware v2 factory prompt also upgrades (this is the bug #2 fix:
+        // installs sitting on the list-formatting prompt get the cleanup-only one).
+        let mut s = get_default_settings();
+        set_clean_prompt(&mut s, LEGACY_CLEAN_PROMPT_V2);
+        assert!(upgrade_clean_prompt(&mut s), "v2 should upgrade");
+        assert_eq!(clean_prompt_of(&s), CLEAN_PROMPT_TEXT);
+    }
+
+    #[test]
+    fn upgrade_clean_prompt_preserves_edits_and_is_idempotent() {
+        // A user-edited clean prompt is never clobbered.
+        let mut s = get_default_settings();
+        let custom = "my own clean prompt ${output}";
+        set_clean_prompt(&mut s, custom);
+        assert!(
+            !upgrade_clean_prompt(&mut s),
+            "an edited clean prompt must not be upgraded"
+        );
+        assert_eq!(clean_prompt_of(&s), custom);
+
+        // Fresh defaults already carry the current prompt, so upgrade is a no-op.
+        let mut s = get_default_settings();
+        assert!(
+            !upgrade_clean_prompt(&mut s),
+            "the current factory prompt is a no-op"
+        );
+    }
+
     #[test]
     fn ensure_defaults_backfills_empty_model_only() {
         let mut settings = get_default_settings();
