@@ -109,6 +109,10 @@ windows = { version = "0.61.3", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 winreg = "0.55"
+# API keys are stored in the Windows Credential Manager (not the settings JSON on
+# disk). Windows-only for now — macOS/Linux keep JSON storage until their
+# keychains are wired + tested, so the Linux CI .deb build is unaffected.
+keyring = { version = "3", features = ["windows-native"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2.1" }
