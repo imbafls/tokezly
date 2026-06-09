@@ -20,10 +20,10 @@ export const SettingsSection: React.FC<SettingsSectionProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   return (
-    <div className="rounded-xl border border-mid-gray/20 bg-surface-2/30 overflow-hidden">
+    <div className="rounded-xl border border-mid-gray/20 bg-surface-2/30">
       <button
         type="button"
-        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-mid-gray/5 cursor-pointer transition-colors duration-150"
+        className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-mid-gray/5 cursor-pointer transition-colors duration-150 rounded-t-xl ${isOpen ? "" : "rounded-b-xl"}`}
         onClick={() => setIsOpen((p) => !p)}
         aria-expanded={isOpen}
       >
