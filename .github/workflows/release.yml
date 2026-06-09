@@ -87,6 +87,11 @@ jobs:
       # ggml defaults so the CPU-bound on-device LLM stays reasonably fast on
       # modern (~2013+) CPUs.
       GGML_NATIVE: "OFF"
+      # Presence flag for the updater signing key. Lets the steps below switch on
+      # signed-build behavior WITHOUT referencing `secrets` in an `if:` (which
+      # Actions doesn't allow) and without exposing the key — this is only the
+      # string "true"/"false", never the key material.
+      HAS_SIGNING_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -158,10 +163,33 @@ jobs:
       - name: Install frontend dependencies
         run: bun install
 
+      # Signed updater artifacts (.sig + the latest.json manifest) are produced
+      # only for the Windows NSIS build, and only when the signing key is set.
+      # createUpdaterArtifacts stays false in tauri.conf.json so local builds and
+      # unsigned CI runs never fail for a missing key; this step opts the signed
+      # Windows release into it. (Linux ships .deb, which Tauri's updater can't
+      # auto-install; macOS isn't built yet.)
+      - name: Enable updater artifacts (signed Windows build)
+        if: runner.os == 'Windows' && env.HAS_SIGNING_KEY == 'true'
+        shell: pwsh
+        run: |
+          $path = "src-tauri/tauri.conf.json"
+          $json = Get-Content $path -Raw | ConvertFrom-Json
+          $json.bundle.createUpdaterArtifacts = $true
+          $json | ConvertTo-Json -Depth 100 | Set-Content $path -Encoding utf8
+          Write-Host "createUpdaterArtifacts = true (signed Windows release)"
+
       - name: Build with Tauri
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # When these are set (repo secrets), tauri-action signs the bundle and
+          # uploads the latest.json updater manifest to the release. When empty,
+          # the build is unsigned and createUpdaterArtifacts stays off (see the
+          # step above) — so a release dispatched before the key is configured
+          # still succeeds, just without auto-update artifacts.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           releaseId: ${{ needs.create-release.outputs.release-id }}
           tagName: v${{ needs.create-release.outputs.version }}
