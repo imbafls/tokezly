@@ -473,16 +473,18 @@ mod tests {
         assert!(!out.trim().is_empty(), "output must be non-empty");
     }
 
-    /// On-device proof that the list-aware clean prompt turns a dictated
-    /// enumeration into a formatted list. Ignored by default (loads ~1.6 GB of
-    /// real weights). Run explicitly:
+    /// On-device regression guard for the "Clean turned my paragraph into a
+    /// numbered list" bug: the cleanup-only clean prompt must KEEP an enumerated
+    /// dictation as flowing prose, never restructure it into a list. (On-demand
+    /// list formatting lives in the explicit "Numbered list" library prompt.)
+    /// Ignored by default (loads ~1.6 GB of real weights). Run explicitly:
     ///
     /// ```text
-    /// cargo test --lib refinement::tests::on_device_list_formatting_smoke -- --ignored --nocapture
+    /// cargo test --lib refinement::tests::on_device_clean_keeps_prose_smoke -- --ignored --nocapture
     /// ```
     #[test]
     #[ignore]
-    fn on_device_list_formatting_smoke() {
+    fn on_device_clean_keeps_prose_smoke() {
         let models_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .expect("crate parent")
@@ -504,7 +506,7 @@ mod tests {
             .replace("${output}", "")
             .trim()
             .to_string();
-        // A messy, run-on dictation of three ordered points (no list markers in).
+        // Ordinary prose that mentions first/second/third — it must stay prose.
         let messy = "okay so first we need to fix the login bug um second uh we should add the csv export feature and then third we have to write some tests for the payment flow";
 
         let out = engine
@@ -512,7 +514,7 @@ mod tests {
             .expect("refine should not error")
             .expect("model present so output is Some");
 
-        eprintln!("\n===== ON-DEVICE LIST SMOKE =====");
+        eprintln!("\n===== ON-DEVICE CLEAN-KEEPS-PROSE SMOKE =====");
         eprintln!("INPUT : {}", messy);
         eprintln!("OUTPUT:\n{}", out);
         eprintln!("================================\n");
@@ -528,8 +530,8 @@ mod tests {
             })
             .count();
         assert!(
-            list_lines >= 2,
-            "expected the enumerated dictation to become a list (>=2 list lines), got:\n{}",
+            list_lines < 2,
+            "cleanup-only Clean must keep prose as prose, not a list; got:\n{}",
             out
         );
     }
