@@ -1,6 +1,6 @@
 [package]
 name = "tokezly"
-version = "0.1.8"
+version = "0.1.9"
 description = "Tokezly — local-first dictation"
 authors = ["Omer"]
 edition = "2021"
