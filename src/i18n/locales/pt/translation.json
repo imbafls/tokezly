@@ -504,7 +504,10 @@
       "retranscribe": "Re-transcrever",
       "retranscribeError": "Falha ao re-transcrever. Por favor, tente novamente.",
       "transcribing": "Transcrevendo...",
-      "transcriptionFailed": "A transcrição falhou. Você pode re-transcrever usando o ícone de tentar novamente."
+      "transcriptionFailed": "A transcrição falhou. Você pode re-transcrever usando o ícone de tentar novamente.",
+      "aiRewrite": "AI rewrite",
+      "showOriginal": "Show original",
+      "hideOriginal": "Hide original"
     },
     "debug": {
       "title": "Depuração",

@@ -504,7 +504,10 @@
       "retranscribe": "Re-transcribe",
       "retranscribeError": "Failed to re-transcribe. Please try again.",
       "transcribing": "Transcribing...",
-      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon."
+      "transcriptionFailed": "Transcription failed. You can re-transcribe using the retry icon.",
+      "aiRewrite": "AI rewrite",
+      "showOriginal": "Show original",
+      "hideOriginal": "Hide original"
     },
     "debug": {
       "title": "Debug",

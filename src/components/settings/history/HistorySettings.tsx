@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/core";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { Check, Copy, FolderOpen, RotateCcw, Star, Trash2 } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Copy,
+  FolderOpen,
+  RotateCcw,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
@@ -37,6 +45,16 @@ const IconButton: React.FC<{
 );
 
 const PAGE_SIZE = 30;
+
+/**
+ * The text that actually landed at the cursor for an entry: the AI-rewritten
+ * output when present, otherwise the raw transcription. History stores both;
+ * the rewrite is what was pasted, so that's what we show and copy by default.
+ */
+const effectiveText = (entry: HistoryEntry): string =>
+  entry.post_processed_text && entry.post_processed_text.trim().length > 0
+    ? entry.post_processed_text
+    : entry.transcription_text;
 
 interface OpenRecordingsButtonProps {
   onClick: () => void;
@@ -257,7 +275,7 @@ export const HistorySettings: React.FC = () => {
               key={entry.id}
               entry={entry}
               onToggleSaved={() => toggleSaved(entry.id)}
-              onCopyText={() => copyToClipboard(entry.transcription_text)}
+              onCopyText={() => copyToClipboard(effectiveText(entry))}
               getAudioUrl={getAudioUrl}
               deleteAudio={deleteAudioEntry}
               retryTranscription={retryHistoryEntry}
@@ -312,8 +330,16 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   const { t, i18n } = useTranslation();
   const [showCopied, setShowCopied] = useState(false);
   const [retrying, setRetrying] = useState(false);
+  const [showOriginal, setShowOriginal] = useState(false);
 
   const hasTranscription = entry.transcription_text.trim().length > 0;
+  // What was pasted (the rewrite, if any) and whether it actually differs from
+  // the raw transcript — only then is there a meaningful before→after to show.
+  const displayText = effectiveText(entry);
+  const rewrote =
+    !!entry.post_processed_text &&
+    entry.post_processed_text.trim().length > 0 &&
+    entry.post_processed_text.trim() !== entry.transcription_text.trim();
 
   const handleLoadAudio = useCallback(
     () => getAudioUrl(entry.file_name),
@@ -356,7 +382,14 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   return (
     <div className="px-4 py-2 pb-5 flex flex-col gap-3">
       <div className="flex justify-between items-center">
-        <p className="text-sm font-medium">{formattedDate}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium">{formattedDate}</p>
+          {rewrote && (
+            <span className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded bg-logo-primary/10 text-logo-primary">
+              {t("settings.history.aiRewrite")}
+            </span>
+          )}
+        </div>
         <div className="flex items-center">
           <IconButton
             onClick={handleCopyText}
@@ -410,34 +443,62 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
         </div>
       </div>
 
-      <p
-        className={`italic text-sm pb-2 ${
-          retrying
-            ? ""
-            : hasTranscription
-              ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
-              : "text-text/40"
-        }`}
-        style={
-          retrying
-            ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
-            : undefined
-        }
-      >
-        {retrying && (
-          <style>{`
+      <div className="flex flex-col gap-2 pb-2">
+        <p
+          className={`italic text-sm ${
+            retrying
+              ? ""
+              : hasTranscription
+                ? "text-text/90 select-text cursor-text whitespace-pre-wrap break-words"
+                : "text-text/40"
+          }`}
+          style={
+            retrying
+              ? { animation: "transcribe-pulse 3s ease-in-out infinite" }
+              : undefined
+          }
+        >
+          {retrying && (
+            <style>{`
             @keyframes transcribe-pulse {
               0%, 100% { color: color-mix(in srgb, var(--color-text) 40%, transparent); }
               50% { color: color-mix(in srgb, var(--color-text) 90%, transparent); }
             }
           `}</style>
+          )}
+          {retrying
+            ? t("settings.history.transcribing")
+            : hasTranscription
+              ? displayText
+              : t("settings.history.transcriptionFailed")}
+        </p>
+
+        {rewrote && !retrying && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowOriginal((v) => !v)}
+              className="self-start inline-flex items-center gap-1 text-xs text-text/40 hover:text-logo-primary transition-colors cursor-pointer"
+            >
+              <ChevronRight
+                width={12}
+                height={12}
+                className={`transition-transform ${
+                  showOriginal ? "rotate-90" : ""
+                }`}
+              />
+              {showOriginal
+                ? t("settings.history.hideOriginal")
+                : t("settings.history.showOriginal")}
+            </button>
+            {showOriginal && (
+              <p className="italic text-xs text-text/50 whitespace-pre-wrap break-words select-text cursor-text border-l-2 border-mid-gray/20 pl-2">
+                {entry.transcription_text}
+              </p>
+            )}
+          </div>
         )}
-        {retrying
-          ? t("settings.history.transcribing")
-          : hasTranscription
-            ? entry.transcription_text
-            : t("settings.history.transcriptionFailed")}
-      </p>
+      </div>
 
       <AudioPlayer onLoadRequest={handleLoadAudio} className="w-full" />
     </div>
