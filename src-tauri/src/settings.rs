@@ -481,7 +481,11 @@ fn without_api_keys(settings: &AppSettings) -> AppSettings {
 fn settings_for_disk(settings: &AppSettings) -> AppSettings {
     let mut on_disk = without_api_keys(settings);
     for (provider, key) in settings.post_process_api_keys.iter() {
-        if !key.is_empty() && !key_vault::set(provider, key) {
+        // Always push to the keychain — an empty value DELETES the credential, so
+        // clearing a key actually sticks. (Previously the empty case was skipped,
+        // leaving the old key for hydrate to restore on the next load.) Keep a key
+        // in the on-disk JSON only when the keychain write fails on a non-empty key.
+        if !key_vault::set(provider, key) && !key.is_empty() {
             on_disk
                 .post_process_api_keys
                 .insert(provider.clone(), key.clone());
@@ -1616,6 +1620,29 @@ mod tests {
             .is_none());
         // Clean up the throwaway entry.
         assert!(key_vault::set(provider, ""));
+        assert!(keyring::Entry::new(key_vault::SERVICE, provider)
+            .unwrap()
+            .get_password()
+            .is_err());
+    }
+
+    // Regression for the key-deletion bug: clearing a key must remove it from the
+    // keychain, not skip it — otherwise hydrate restores the stale key on the next
+    // load. Ignored: touches the real keychain; throwaway provider id; cleans up.
+    #[cfg(windows)]
+    #[test]
+    #[ignore]
+    fn clearing_a_key_via_settings_for_disk_deletes_the_credential() {
+        let provider = "tokezly_test_clear_delete_me";
+        assert!(key_vault::set(provider, "to-be-cleared"));
+        assert_eq!(key_vault::get(provider).as_deref(), Some("to-be-cleared"));
+        // Clearing the key (empty value) through the on-disk persistence path must
+        // delete the credential — not leave it for hydrate to resurrect.
+        let mut s = get_default_settings();
+        s.post_process_api_keys = SecretMap(HashMap::new());
+        s.post_process_api_keys.insert(provider.into(), String::new());
+        let _ = settings_for_disk(&s);
+        assert_eq!(key_vault::get(provider), None, "cleared key must be gone");
         assert!(keyring::Entry::new(key_vault::SERVICE, provider)
             .unwrap()
             .get_password()
