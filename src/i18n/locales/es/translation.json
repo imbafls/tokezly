@@ -504,7 +504,10 @@
       "retranscribe": "Re-transcribir",
       "retranscribeError": "No se pudo re-transcribir. Por favor, inténtalo de nuevo.",
       "transcribing": "Transcribiendo...",
-      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el ícono de reintentar."
+      "transcriptionFailed": "La transcripción falló. Puedes re-transcribir usando el ícono de reintentar.",
+      "aiRewrite": "AI rewrite",
+      "showOriginal": "Show original",
+      "hideOriginal": "Hide original"
     },
     "debug": {
       "title": "Depuración",
