@@ -18,10 +18,11 @@ interface PasteCompletePayload {
   engine: string;
 }
 
-/// How long the result card stays before auto-dismissing, reset on each
-/// interaction (Copy/Retry). The ✕ dismisses immediately; a new recording
-/// replaces it. Kept short since the card sits over the cursor area.
-const CARD_AUTODISMISS_MS = 6000;
+/// How long the result card stays before auto-dismissing. Paused while the
+/// pointer is over the card and reset on each interaction (Copy/Retry), so a
+/// short timeout never snatches it away mid-use; the ✕ dismisses immediately
+/// and a new recording replaces it. Kept short since it sits over the cursor.
+const CARD_AUTODISMISS_MS = 2500;
 
 /// How long the Copy button shows its "Copied" confirmation before reverting.
 const COPIED_REVERT_MS = 1500;
@@ -104,6 +105,9 @@ const RecordingOverlay: React.FC = () => {
   const [isRetrying, setIsRetrying] = useState(false);
   // Bumped on each card interaction to restart the auto-dismiss timer.
   const [interactions, setInteractions] = useState(0);
+  // While the pointer is over the result card, the auto-dismiss timer pauses so
+  // a short timeout can't snatch the card away as the user reaches for it.
+  const [cardHovered, setCardHovered] = useState(false);
   const smoothedLevelsRef = useRef<number[]>(Array(NUM_BARS).fill(0));
   const direction = getLanguageDirection(i18n.language);
 
@@ -121,6 +125,7 @@ const RecordingOverlay: React.FC = () => {
       );
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
+        setCardHovered(false);
       });
       const unlistenPaste = await listen<PasteCompletePayload>(
         "paste-complete",
@@ -181,16 +186,17 @@ const RecordingOverlay: React.FC = () => {
   }, [isVisible, state]);
 
   // The result card auto-dismisses after a quiet interval. The timer restarts
-  // on every interaction (`interactions`) and is cleared if the state changes
-  // (e.g. a new recording starts), so a stale timer never hides a fresh capsule.
+  // on every interaction (`interactions`), pauses while the pointer is over the
+  // card (`cardHovered`), and is cleared if the state changes (e.g. a new
+  // recording starts), so a stale timer never hides a fresh capsule.
   useEffect(() => {
-    if (isVisible && state === "toast") {
+    if (isVisible && state === "toast" && !cardHovered) {
       const id = setTimeout(() => {
         void commands.dismissOverlay();
       }, CARD_AUTODISMISS_MS);
       return () => clearTimeout(id);
     }
-  }, [isVisible, state, interactions]);
+  }, [isVisible, state, interactions, cardHovered]);
 
   const handleCopy = async () => {
     setInteractions((n) => n + 1);
@@ -220,7 +226,11 @@ const RecordingOverlay: React.FC = () => {
   const renderSurface = () => {
     if (state === "toast") {
       return (
-        <div className="card">
+        <div
+          className="card"
+          onMouseEnter={() => setCardHovered(true)}
+          onMouseLeave={() => setCardHovered(false)}
+        >
           <div className="card-head">
             <span className="checkwrap">
               <CheckIcon />

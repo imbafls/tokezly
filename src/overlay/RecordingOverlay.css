@@ -37,8 +37,8 @@
   opacity: 0;
   transform: translateY(6px);
   transition:
-    opacity 240ms ease-out,
-    transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+    opacity 150ms ease-out,
+    transform 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .overlay-root.visible .overlay-surface {
   opacity: 1;
