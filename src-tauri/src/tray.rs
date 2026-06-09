@@ -25,22 +25,53 @@ pub enum AppTheme {
     Colored, // Pink/colored theme for Linux
 }
 
-/// Gets the current app theme, with Linux defaulting to Colored theme
+/// Reads the Windows taskbar light/dark setting (`SystemUsesLightTheme`). The
+/// tray icon lives in the notification area, so it must follow the SYSTEM
+/// (taskbar) theme — not the app window theme, which is absent while the app
+/// runs headless in the tray (where it would wrongly default to the pale icon).
+/// Returns None if the value can't be read.
+#[cfg(target_os = "windows")]
+fn windows_taskbar_uses_light_theme() -> Option<bool> {
+    use winreg::enums::HKEY_CURRENT_USER;
+    use winreg::RegKey;
+    let personalize = RegKey::predef(HKEY_CURRENT_USER)
+        .open_subkey(r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize")
+        .ok()?;
+    let uses_light: u32 = personalize.get_value("SystemUsesLightTheme").ok()?;
+    Some(uses_light == 1)
+}
+
+/// Gets the current app theme, with Linux defaulting to Colored theme.
 pub fn get_current_theme(app: &AppHandle) -> AppTheme {
     if cfg!(target_os = "linux") {
         // On Linux, always use the colored theme
-        AppTheme::Colored
-    } else {
-        // On other platforms, map system theme to our app theme
-        if let Some(main_window) = app.get_webview_window("main") {
-            match main_window.theme().unwrap_or(Theme::Dark) {
-                Theme::Light => AppTheme::Light,
-                Theme::Dark => AppTheme::Dark,
-                _ => AppTheme::Dark, // Default fallback
-            }
-        } else {
-            AppTheme::Dark
+        return AppTheme::Colored;
+    }
+
+    // On Windows, match the taskbar theme so the tray icon has contrast against
+    // the notification area: a light taskbar needs the dark icon variant, a dark
+    // taskbar the light one. This is correct even while the app runs headless in
+    // the tray, where the window-theme path below would default to the pale icon.
+    #[cfg(target_os = "windows")]
+    {
+        if let Some(uses_light) = windows_taskbar_uses_light_theme() {
+            return if uses_light {
+                AppTheme::Light
+            } else {
+                AppTheme::Dark
+            };
         }
+    }
+
+    // macOS (and Windows fallback): map the main window's system theme.
+    if let Some(main_window) = app.get_webview_window("main") {
+        match main_window.theme().unwrap_or(Theme::Dark) {
+            Theme::Light => AppTheme::Light,
+            Theme::Dark => AppTheme::Dark,
+            _ => AppTheme::Dark, // Default fallback
+        }
+    } else {
+        AppTheme::Dark
     }
 }
 
