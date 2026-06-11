@@ -130,6 +130,12 @@ const RecordingOverlay: React.FC = () => {
       const unlistenPaste = await listen<PasteCompletePayload>(
         "paste-complete",
         (event) => {
+          // Reset the hover flag so a new toast always starts its auto-dismiss
+          // timer. Without this, if the previous card was unmounted by a new
+          // recording (show-overlay) rather than hide-overlay, React never
+          // delivers onMouseLeave and cardHovered stays true, blocking the
+          // auto-dismiss effect forever.
+          setCardHovered(false);
           setPasteMode(event.payload.mode);
           setPasteText(event.payload.text);
           setPasteEngine(event.payload.engine);
