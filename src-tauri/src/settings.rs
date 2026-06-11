@@ -656,10 +656,11 @@ fn default_autostart_enabled() -> bool {
 }
 
 fn default_update_checks_enabled() -> bool {
-    // The in-app updater is dormant: releases are unsigned and no `latest.json`
-    // is published (`createUpdaterArtifacts` is false), so a check would only
-    // 404. New installs default to off and the UI affordances are hidden.
-    false
+    // The in-app updater now ships with signed artifacts and a published
+    // `latest.json` manifest hosted on the GitHub Release. New installs
+    // default to on so users get automatic updates without hunting for a
+    // new installer.
+    true
 }
 
 fn default_selected_language() -> String {
