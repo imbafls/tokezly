@@ -557,4 +557,193 @@ mod tests {
         drop(file);
         std::fs::rename(&partial, target).map_err(|e| e.to_string())
     }
+
+    /// Comprehensive battery: runs the on-device model against real dictation
+    /// patterns and reports which checks pass/fail. Ignored by default (needs
+    /// the ~1.6 GB model). Run with:
+    ///
+    /// ```text
+    /// cargo test --lib refinement::tests::on_device_clean_battery -- --ignored --nocapture
+    /// ```
+    #[test]
+    #[ignore]
+    fn on_device_clean_battery() {
+        let models_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .expect("crate parent")
+            .join("local")
+            .join("models");
+        std::fs::create_dir_all(&models_dir).expect("create models dir");
+
+        let model_path = models_dir.join(DEFAULT_MODEL_FILENAME);
+        if !model_path.is_file() {
+            eprintln!("Model missing; downloading {} ...", DEFAULT_MODEL_URL);
+            download_blocking(DEFAULT_MODEL_URL, &model_path).expect("download model");
+        }
+
+        let engine = OnDeviceEngine::new(models_dir);
+
+        // The real shipped clean prompt, with the `${output}` placeholder stripped
+        // exactly as `actions::build_system_prompt` does for the on-device path.
+        let system_prompt = crate::settings::CLEAN_PROMPT_TEXT
+            .replace("${output}", "")
+            .trim()
+            .to_string();
+
+        struct Case {
+            name: &'static str,
+            raw: &'static str,
+            /// Substrings that MUST appear in the output.
+            must_contain: &'static [&'static str],
+            /// Substrings that MUST NOT appear in the output.
+            must_not_contain: &'static [&'static str],
+        }
+
+        let cases = &[
+            // ── filler words ──
+            Case {
+                name: "filler-um-uh",
+                raw: "um so the the websocket reconnect it doesn't back off it just uh hammers the endpoint",
+                must_contain: &["websocket", "reconnect", "back off", "hammers"],
+                must_not_contain: &[" um ", " uh ", "the the"],
+            },
+            Case {
+                name: "filler-like-youknow",
+                raw: "you know like the database connection pool um you know like needs a timeout",
+                must_contain: &["database", "connection", "pool", "timeout"],
+                must_not_contain: &["you know", " um "],
+            },
+            Case {
+                name: "filler-i-mean",
+                raw: "we should use postgres i mean mysql for the um for the user table",
+                must_contain: &["mysql", "user", "table"],
+                must_not_contain: &["i mean", " um ", "for the for"],
+            },
+            // ── duplicate words ──
+            Case {
+                name: "dupe-words",
+                raw: "the the function returns a a null pointer if the the connection is is closed",
+                must_contain: &["function", "null pointer", "connection", "closed"],
+                must_not_contain: &["the the", "a a", "is is"],
+            },
+            // ── spelling fixes ──
+            // NOTE: Gemma 2B Q4 cannot reliably fix misspellings; this case
+            // checks that the model preserves the input without hallucinating.
+            Case {
+                name: "spelling-preserve",
+                raw: "the recieve function shoudl handel the errror",
+                must_contain: &["function", "error"],
+                must_not_contain: &[],
+            },
+            // ── capitalization ──
+            Case {
+                name: "caps-start",
+                raw: "the server needs a restart. we also need to update the certificates.",
+                must_contain: &["server", "restart", "certificates"],
+                must_not_contain: &[],
+            },
+            // ── number words: 2B can't convert, check it preserves meaning ──
+            Case {
+                name: "numbers-preserve",
+                raw: "we need twenty five servers with at least thirty two gigs of ram",
+                must_contain: &["twenty", "servers", "ram"],
+                must_not_contain: &[],
+            },
+            // ── spoken punctuation: 2B can't replace, check it preserves ──
+            Case {
+                name: "spoken-punct-preserve",
+                raw: "the error is on line forty two comma column five period fix it now",
+                must_contain: &["error", "line", "fix"],
+                must_not_contain: &[],
+            },
+            // ── self-corrections ──
+            Case {
+                name: "self-correct-mid",
+                raw: "the login page should redirect to dash no the settings page after auth",
+                must_contain: &["settings"],
+                must_not_contain: &["dash no"],
+            },
+            // ── code/technical terms: 2B can't guess, check no corruption ──
+            Case {
+                name: "code-preserve",
+                raw: "the use effect hook runs after every render cycle",
+                must_contain: &["hook", "render"],
+                must_not_contain: &[],
+            },
+            // ── multilingual: preserves language ──
+            Case {
+                name: "lang-preserve-fr",
+                raw: "bonjour je voudrais commander un café s'il vous plaît",
+                must_contain: &["bonjour", "café", "plaît"],
+                must_not_contain: &[],
+            },
+            // ── prose stays prose (regression from PR #9) ──
+            Case {
+                name: "prose-not-list",
+                raw: "first we need to fix the login bug second we should add the csv export and third write some tests for the payment flow",
+                must_contain: &["fix", "login", "export", "tests", "payment"],
+                must_not_contain: &["1.", "2.", "3.", "- fix", "- add", "- write"],
+            },
+        ];
+
+        let mut passed = 0usize;
+        let mut failed = 0usize;
+
+        for case in cases {
+            let out = match engine
+                .refine(DEFAULT_MODEL_FILENAME, &system_prompt, case.raw)
+            {
+                Ok(Some(text)) => text,
+                Ok(None) => {
+                    eprintln!("FAIL {} — model returned None", case.name);
+                    failed += 1;
+                    continue;
+                }
+                Err(e) => {
+                    eprintln!("FAIL {} — error: {}", case.name, e);
+                    failed += 1;
+                    continue;
+                }
+            };
+
+            let mut ok = true;
+
+            // Check must_contain
+            for needle in case.must_contain {
+                if !out.to_lowercase().contains(&needle.to_lowercase()) {
+                    eprintln!(
+                        "FAIL {} — missing \"{}\" in output:\n  {}",
+                        case.name, needle, out
+                    );
+                    ok = false;
+                }
+            }
+
+            // Check must_not_contain
+            for needle in case.must_not_contain {
+                if out.to_lowercase().contains(&needle.to_lowercase()) {
+                    eprintln!(
+                        "FAIL {} — unwanted \"{}\" in output:\n  {}",
+                        case.name, needle, out
+                    );
+                    ok = false;
+                }
+            }
+
+            if ok {
+                passed += 1;
+                eprintln!("PASS {}", case.name);
+            } else {
+                failed += 1;
+            }
+        }
+
+        eprintln!("\n===== BATTERY RESULTS =====");
+        eprintln!("Passed: {} / {}", passed, cases.len());
+        eprintln!("Failed: {} / {}", failed, cases.len());
+
+        if failed > 0 {
+            panic!("{} of {} test cases failed", failed, cases.len());
+        }
+    }
 }
